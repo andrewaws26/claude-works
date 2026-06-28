@@ -57,3 +57,33 @@ def test_unknown_ats_defaults_to_fill_and_park():
     )
     assert plan.action == "fill_and_park"
     assert plan.human_step is not None
+
+
+def test_classify_workable_and_hirebridge():
+    assert submission.classify_ats(Job("X", "Acme", "https://apply.workable.com/acme/j/ABC123/")) == "workable"
+    assert submission.classify_ats(Job("X", "Acme", "https://recruit.hirebridge.com/v3/Jobs/JobDetails.aspx?jid=1")) == "hirebridge"
+
+
+def test_workable_auto_submits_with_date_and_address_gotchas():
+    plan = submission.plan_submission(
+        Job("AI Engineer", "Acme", "https://apply.workable.com/acme/j/ABC123/")
+    )
+    assert plan.action == "auto_submit"
+    assert any("pressSequentially" in n for n in plan.notes)
+    assert any("autocomplete suggestion" in n for n in plan.notes)
+
+
+def test_hirebridge_auto_submits_with_email_gate_and_formvalidation_gotchas():
+    plan = submission.plan_submission(
+        Job("Agentic Engineer", "Acme", "https://recruit.hirebridge.com/v3/Jobs/JobDetails.aspx?jid=1")
+    )
+    assert plan.action == "auto_submit"
+    assert any("RE-TYPE it" in n for n in plan.notes)
+    assert any("FormValidation" in n for n in plan.notes)
+
+
+def test_every_plan_carries_the_general_gotchas_memory():
+    plan = submission.plan_submission(
+        Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x")
+    )
+    assert any("remote flag is not proof" in n for n in plan.notes)

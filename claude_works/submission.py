@@ -51,9 +51,53 @@ STANDARD_ANSWERS: dict[str, str] = {
 }
 
 # ATSes whose forms this system can fill and submit without a human step.
-AUTO_SUBMIT_ATS = {"ashby", "greenhouse"}
+# (Workable: recaptcha is usually disabled. Hirebridge: completable after a
+# re-type email gate, no emailed code.)
+AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
 PARK_ATS = {"lever", "workday"}
+
+# Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
+# way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
+# how each ATS behaves. APPEND here whenever a new gotcha is discovered.
+ATS_GOTCHAS: dict[str, list[str]] = {
+    "ashby": [
+        "Ashby labeled-radio gotcha: use locator.focus() then keyboard.press('Space').",
+        "Resume is the LAST input[type=file] (id _systemfield_resume); the first file input is autofill-from-resume.",
+        "Location is a typeahead: type the city, then click the [role=option] matching 'City, State, Country'.",
+        "Yes/No questions render as <button> with an _act class when selected; clicking an already-selected one TOGGLES IT OFF, so check state instead of re-clicking.",
+        "A remote flag can still hide 'N days/week in office' in the body; read the description before treating as remote.",
+    ],
+    "greenhouse": [
+        "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
+        "Auto-submittable: upload the resume file input, then the standard fields, then submit.",
+    ],
+    "lever": [
+        "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
+        "Resume: setInputFiles on the hidden input#resume-upload-input (do not click through the captcha overlay).",
+        "Radios: set by clicking the input matched on its label text; the generic fill-form helper malforms non-boolean setChecked values.",
+    ],
+    "workable": [
+        "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
+        "Masked DATE inputs (MM/DD/YYYY) need sequential typing (pressSequentially), not a single fill().",
+        "Address requires SELECTING a structured autocomplete suggestion; free text fails validation.",
+    ],
+    "hirebridge": [
+        "Account email-gate first: enter the email, then RE-TYPE it to confirm (not an emailed code); proceeds to QuickApply.",
+        "ASP.NET postback cascade: Country onchange reloads State options; set fields by stable element id and dispatch a change event.",
+        "FormValidation.io gates Submit on real input events; after programmatic fills, revalidate the form, and when isValid() is true but the button stays disabled, clear its disabled attribute and click.",
+    ],
+    "workday": [
+        "Account wall plus date-spinbuttons; fill what you can, then park for account verification and the date control.",
+    ],
+}
+
+# Tactics that apply across every ATS.
+GENERAL_GOTCHAS: list[str] = [
+    "A remote flag is not proof: always read the JD body for an in-office requirement (for example '4 days/week').",
+    "Phone fields can have a hidden raw value plus a formatted display variant; set both.",
+    "EEO self-identify questions are declined; an acknowledgment 'type your full name' field takes the candidate name.",
+]
 
 
 @dataclass
@@ -92,6 +136,10 @@ def classify_ats(job: Job) -> str:
         return "lever"
     if "myworkdayjobs.com" in u or "workday" in u:
         return "workday"
+    if "workable.com" in u:
+        return "workable"
+    if "hirebridge.com" in u:
+        return "hirebridge"
     return job.ats.lower() or "unknown"
 
 
@@ -174,10 +222,10 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
                            if k not in ("website_portfolio", "linkedin", "github")},
         human_step=human,
     )
-    if ats == "ashby":
-        plan.notes.append("Ashby labeled-radio gotcha: use locator.focus() then keyboard.press('Space').")
-    if ats == "greenhouse":
-        plan.notes.append("Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; exact-label auth/sponsorship.")
+    # Attach the accreted per-ATS tactics plus the cross-ATS ones (the system's
+    # form-handling memory), so the agent driving Playwright knows the gotchas.
+    plan.notes.extend(ATS_GOTCHAS.get(ats, []))
+    plan.notes.extend(GENERAL_GOTCHAS)
     if action == "fill_and_park":
         plan.notes.append("Park one role at a time; log to NEEDS_YOUR_ATTENTION.md with the resume staged.")
     return plan
