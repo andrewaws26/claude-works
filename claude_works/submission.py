@@ -71,6 +71,10 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "greenhouse": [
         "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
         "Auto-submittable: upload the resume file input, then the standard fields, then submit.",
+        "Screening + EEO dropdowns are React-Select comboboxes: get the combobox by name, click it, type the option, press Enter (type-and-Enter filters then selects).",
+        "The phone Country React-Select is REQUIRED and the usual silent submit-blocker; if submit fails with an aria-invalid 'country', set it to United States and resubmit.",
+        "After the resume uploads, Greenhouse REMOVES the file input and shows the filename near Resume/CV; do not treat the missing input as a failed upload or try to re-upload.",
+        "An invisible reCAPTCHA badge does not block a legit submit; success is a redirect to a /confirmation 'Thank you for applying' page.",
     ],
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
