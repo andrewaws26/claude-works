@@ -18,7 +18,7 @@ The system is a five-stage pipeline. Each stage is a frozen or plain `@dataclass
 SearchAngle  ->  Job  ->  Score  ->  Resume  ->  Application
 ```
 
-- **SearchAngle** is one reusable search lens (FDE, IoT, Overemployed, and so on). It biases discovery and scoring toward a lane without changing the rules.
+- **SearchAngle** is one reusable search lens (FDE, IoT, and so on). It biases discovery and scoring toward a lane without changing the rules.
 - **Job** is a single discovered role, normalized across every source. Its `role_key` (ATS plus org slug plus job id, parsed from the apply URL) is the canonical identity used for de-duplication. De-dup is by role, never by company, so the same company with a different role is allowed.
 - **Score** is the fit-rubric verdict for a job: a value from 0 to 10, a `pursue` boolean, one reason line per signal, and a `hard_cap` field set when a disqualifying signal applies.
 - **Resume** is a built artifact plus the verdicts of a four-gate verification pipeline (one-page render, style lint, anti-fabrication verify, and an agent claim-trace check).

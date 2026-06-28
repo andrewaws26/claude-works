@@ -38,8 +38,8 @@ def discover_jobs(angle: str = "", source: str = "newsource", limit: int = 25) -
     """Find fresh roles from a discovery source, ranked by fit, de-duped by role.
 
     Args:
-        angle: a search lens from SEARCH_ANGLES.md (e.g. "FDE", "Overemployed",
-            "IoT") to bias ranking toward that lane. Empty = the default FDE lane.
+        angle: a search lens from SEARCH_ANGLES.md (e.g. "FDE", "IoT")
+            to bias ranking toward that lane. Empty = the default FDE lane.
         source: which live sweep to run. One of "newsource" (Getro VC networks +
             Anthropic-customer ATS boards, highest yield), "getro", "anthropic", or
             "board_harvest" (curated Ashby/Greenhouse seed miner).

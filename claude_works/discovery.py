@@ -30,7 +30,6 @@ from .models import Job, Score, SearchAngle
 # Keyword bias per angle name -> titles/terms that should score higher in that lens.
 _ANGLE_BIAS: dict[str, tuple[str, ...]] = {
     "fde": ("forward deployed", "applied ai", "solutions engineer", "ai engineer", "demo", "founding engineer"),
-    "overemployed": ("async", "remote", "contract", "backend", "internal tooling", "eval", "pipeline"),
     "junior applied ai": ("associate", "junior", "ai engineer i", "applied ai"),
     "iot": ("iot", "telematics", "edge", "connected", "industrial", "robotics", "fleet"),
     "industrial": ("industrial", "enterprise", "vertical", "manufacturing"),

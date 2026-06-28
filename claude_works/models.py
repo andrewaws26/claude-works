@@ -41,8 +41,8 @@ def _slug(text: str) -> str:
 class SearchAngle:
     """One reusable search lens from ``SEARCH_ANGLES.md``.
 
-    Angles are lenses Andrew has explicitly defined (FDE, Overemployed, IoT, and
-    so on). Each pairs a trigger phrase with a definition and the titles to target,
+    Angles are lenses Andrew has explicitly defined (FDE, IoT, and so on). Each
+    pairs a trigger phrase with a definition and the titles to target,
     so an agent can run "that kind of search" on request.
     """
 

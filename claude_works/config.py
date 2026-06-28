@@ -46,7 +46,6 @@ class Paths:
     claims_bank: Path = REPO_ROOT / "CLAIMS_BANK.md"
     fit_rubric: Path = REPO_ROOT / "FIT_RUBRIC.md"
     authorizations: Path = REPO_ROOT / "AUTHORIZATIONS.md"
-    overemployed: Path = REPO_ROOT / "OVEREMPLOYED_GUIDE.md"
     outputs: Path = REPO_ROOT / "outputs"
     resumes: Path = RESUMES_DIR
     genlib: Path = RESUMES_DIR / "_genlib.py"
