@@ -31,6 +31,7 @@ Module layout:
 | `models.py` | The five dataclasses, the de-dup `role_key`, and the slug normalizer. Standard library only. |
 | `config.py` | Paths, the comp floor, the rails (exclusions, over-level terms, hard-gap skills), and environment-only credential reads. |
 | `discovery.py` | Source sweeps, search-angle parsing, and the scoring function with its hard caps. |
+| `curation.py` | Queue triage: park poor-fit roles (off-lane, over-level, non-US, excluded, hard-skill-gap, already-applied) with an auditable reason, and fit-rank the rest so the loop applies to the strongest open match first instead of whatever is next in line. |
 | `resume.py` | The resume builder and the static verification gates. |
 | `submission.py` | ATS classification and the deterministic fill-and-park plan builder. |
 | `tracker.py` | Reading and appending the ledger and the discovery queue, de-duped by role. |
