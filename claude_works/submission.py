@@ -68,6 +68,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Yes/No questions render as <button> with an _act class when selected; clicking an already-selected one TOGGLES IT OFF, so check state instead of re-clicking.",
         "Set those Yes/No buttons with a REAL pointer click, never a scripted element.click(): a scripted click sets the _act visual but not the React form value, so the field reads as a missing required field on submit; recover a mismatched one by clicking the opposite answer then the intended one.",
         "A remote flag can still hide 'N days/week in office' in the body; read the description before treating as remote.",
+        "Trust the application-page header 'Location Type' field (Remote / Hybrid / Onsite) over the posting-api isRemote flag, which is unreliable: a posting can report isRemote=true while the page header reads Location Type=Hybrid for a specific city, so only a header of 'Remote' clears a remote-first filter.",
+        "Headless JD screening: the per-job posting-api endpoint returns Unauthorized, but the board endpoint posting-api/job-board/<org> returns the whole board as {jobs:[...]}; filter by job id (a missing id means the posting is closed). Each job carries title, location, isRemote, secondaryLocations, compensation, applyUrl, and descriptionHtml, and secondaryLocations[].address country fields give a fast location screen before opening a browser.",
     ],
     "greenhouse": [
         "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
