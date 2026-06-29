@@ -91,3 +91,9 @@ def test_counts_histogram_and_sorting():
     # active sorted by fit descending
     fits = [f for _, f in res.active]
     assert fits == sorted(fits, reverse=True)
+
+
+def test_channel_bonus_breaks_ties_toward_ashby():
+    ashby = Job(title="AI Engineer", company="A", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", remote=True)
+    lever = Job(title="AI Engineer", company="B", url="https://jobs.lever.co/b/12345678-90ab-cdef-1234-567890abcdef", ats="lever", remote=True)
+    assert curation.fit_score(ashby) > curation.fit_score(lever)

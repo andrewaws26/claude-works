@@ -77,6 +77,11 @@ US_SIGNALS: tuple[str, ...] = (
 )
 
 # The reasons curate can assign (stable vocabulary for summaries and tests).
+# Channel bonus: bias the active ranking toward ATSes that auto-submit cleanly, so
+# more fires land as confirmed rather than parked. Ashby has no anti-bot gate; Greenhouse
+# often email-gates an automated submit; Lever is captcha-walled; Custom varies.
+CHANNEL_BONUS: dict[str, int] = {"ashby": 2, "workable": 1, "greenhouse": 1, "lever": 0}
+
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
     "advanced-degree", "off-lane", "non-us-only", "hard-skill-gap",
@@ -155,6 +160,7 @@ def fit_score(job: Job) -> int:
         score += 1
     if "junior" in title or "associate" in title:
         score -= 1
+    score += CHANNEL_BONUS.get((job.ats or "").lower(), 0)
     return score
 
 
