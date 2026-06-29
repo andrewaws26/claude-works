@@ -97,3 +97,15 @@ def test_channel_bonus_breaks_ties_toward_ashby():
     ashby = Job(title="AI Engineer", company="A", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", remote=True)
     lever = Job(title="AI Engineer", company="B", url="https://jobs.lever.co/b/12345678-90ab-cdef-1234-567890abcdef", ats="lever", remote=True)
     assert curation.fit_score(ashby) > curation.fit_score(lever)
+
+
+def test_learned_filters_park_model_training_onsite_lead():
+    # model-training (research engineering)
+    r1 = curation.curate([Job(title="AI Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="RLHF and fine-tuning reward models")])
+    assert r1.parked and r1.parked[0][1] == "model-training"
+    # onsite/hybrid without remote
+    r2 = curation.curate([Job(title="AI Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", location="New York", comp="3 days a week in office", remote=False)])
+    assert r2.parked and r2.parked[0][1] == "onsite-hybrid"
+    # lead hiding behind an IC title
+    r3 = curation.curate([Job(title="Forward Deployed Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="you will be the technical lead mentoring engineers")])
+    assert r3.parked and r3.parked[0][1] == "lead-in-body"

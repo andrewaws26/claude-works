@@ -67,6 +67,24 @@ ADVANCED_DEGREE: tuple[str, ...] = (
     "ms or phd", "graduate degree", "advanced degree", "requires a phd",
 )
 
+# Learned from runtime skips (each skip means more like it are queued): model-training
+# / research engineering (the candidate builds ON models, not trains them), onsite/hybrid
+# requirements (candidate is remote-only), and lead/over-level roles hiding behind an IC
+# title (caught from the JD body).
+MODEL_TRAINING: tuple[str, ...] = (
+    "fine-tun", "rlhf", "rlaif", "reward model", "model training", "pretrain",
+    "pre-train", "training large language", "train llms", "models from scratch",
+)
+ONSITE: tuple[str, ...] = (
+    "on-site", "onsite", "in-office", "in office", "in person", "in-person",
+    "days a week in", "days/week in", "days per week in", "relocate to",
+    "must be located in", "hybrid work", "hybrid role", "hybrid schedule",
+)
+LEAD_BODY: tuple[str, ...] = (
+    "technical lead", "team lead", "tech lead", "engineering lead", "lead engineer",
+    "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
+)
+
 # US-location signals. When a location is present but shows none of these, the
 # posting is treated as non-US-only and parked.
 US_SIGNALS: tuple[str, ...] = (
@@ -84,7 +102,8 @@ CHANNEL_BONUS: dict[str, int] = {"ashby": 2, "workable": 1, "greenhouse": 1, "le
 
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
-    "advanced-degree", "off-lane", "non-us-only", "hard-skill-gap",
+    "advanced-degree", "lead-in-body", "model-training", "onsite-hybrid",
+    "off-lane", "non-us-only", "hard-skill-gap",
 )
 
 
@@ -131,6 +150,12 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "over-level"
     if "scientist" in title or any(d in blob for d in ADVANCED_DEGREE):
         return "advanced-degree"
+    if any(p in blob for p in LEAD_BODY):
+        return "lead-in-body"
+    if any(m in blob for m in MODEL_TRAINING):
+        return "model-training"
+    if any(o in blob for o in ONSITE) and "remote" not in blob:
+        return "onsite-hybrid"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
