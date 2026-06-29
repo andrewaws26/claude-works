@@ -66,6 +66,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Resume is the LAST input[type=file] (id _systemfield_resume); the first file input is autofill-from-resume.",
         "Location is a typeahead: type the city, then click the [role=option] matching 'City, State, Country'.",
         "Yes/No questions render as <button> with an _act class when selected; clicking an already-selected one TOGGLES IT OFF, so check state instead of re-clicking.",
+        "Set those Yes/No buttons with a REAL pointer click, never a scripted element.click(): a scripted click sets the _act visual but not the React form value, so the field reads as a missing required field on submit; recover a mismatched one by clicking the opposite answer then the intended one.",
         "A remote flag can still hide 'N days/week in office' in the body; read the description before treating as remote.",
     ],
     "greenhouse": [
