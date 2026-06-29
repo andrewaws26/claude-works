@@ -76,6 +76,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The phone Country React-Select is REQUIRED and the usual silent submit-blocker; if submit fails with an aria-invalid 'country', set it to United States and resubmit.",
         "After the resume uploads, Greenhouse REMOVES the file input and shows the filename near Resume/CV; do not treat the missing input as a failed upload or try to re-upload.",
         "An invisible reCAPTCHA badge does not block a legit submit; success is a redirect to a /confirmation 'Thank you for applying' page.",
+        "Custom dropdowns are not always Yes/No: a consent question's only option may be literally 'I consent', so read the actual option text scoped to that field's own control rather than assuming, and note the always-present phone-country listbox pollutes a global option query.",
     ],
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
