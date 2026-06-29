@@ -77,6 +77,11 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "After the resume uploads, Greenhouse REMOVES the file input and shows the filename near Resume/CV; do not treat the missing input as a failed upload or try to re-upload.",
         "An invisible reCAPTCHA badge does not block a legit submit; success is a redirect to a /confirmation 'Thank you for applying' page.",
         "Custom dropdowns are not always Yes/No: a consent question's only option may be literally 'I consent', so read the actual option text scoped to that field's own control rather than assuming, and note the always-present phone-country listbox pollutes a global option query.",
+        "Some boards now gate the final submit behind an emailed 8-character human-verification code: after an otherwise-valid submit the form reveals an 'enter the code to confirm you're a human' field and disables Submit, so treat it like a captcha and fill-and-park. It is intermittent and appears only after field validation passes, so a code prompt means the form was otherwise complete and correct, not a build failure.",
+        "Location and geo-autocomplete fields need real keystrokes: a single fill() sets the value but fires no lookup, so no option list appears; clear any prior fill() text first (focus, select-all, backspace) or slow typing APPENDS and corrupts the value.",
+        "The Location (City) geocode options render as [class*=option] (e.g. 'City, State, Country'), NOT [role=option]; the [role=option] matches are the always-present phone-country listbox, so type the city slowly, wait about 3 seconds for the lookup, then click the option by EXACT text (getByText('City, State, Country', exact)).",
+        "On company-branded career pages the whole form is inside an embedded iframe: locate the frame that holds the file inputs / comboboxes and operate within it, not the top page.",
+        "A required cover letter with no attached file: click its 'enter manually' toggle to reveal a textarea, then type a genuine tailored letter into the VISIBLE textarea, excluding the hidden g-recaptcha-response textarea.",
     ],
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
@@ -103,6 +108,7 @@ GENERAL_GOTCHAS: list[str] = [
     "A remote flag is not proof: always read the JD body for an in-office requirement (for example '4 days/week').",
     "Phone fields can have a hidden raw value plus a formatted display variant; set both.",
     "EEO self-identify questions are declined; an acknowledgment 'type your full name' field takes the candidate name.",
+    "Browser-driver tooling often sandboxes file uploads to an allowed root; stage the resume PDF inside an allowed directory before uploading or setInputFiles errors with 'outside allowed roots'.",
 ]
 
 
