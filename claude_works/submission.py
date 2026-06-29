@@ -109,6 +109,7 @@ GENERAL_GOTCHAS: list[str] = [
     "Phone fields can have a hidden raw value plus a formatted display variant; set both.",
     "EEO self-identify questions are declined; an acknowledgment 'type your full name' field takes the candidate name.",
     "Browser-driver tooling often sandboxes file uploads to an allowed root; stage the resume PDF inside an allowed directory before uploading or setInputFiles errors with 'outside allowed roots'.",
+    "An emailed verification code is an email-ownership check (the applicant owns the inbox and authorizes the agent), distinct from a captcha: it can be completed by reading the code from the applicant's own inbox via a scoped, read-only IMAP reader authenticated with a revocable app password, then entering it. A captcha, an 'are you a robot' check, or a 'no AI was used' attestation is NOT this and is never bypassed: those are filled-and-parked for the human.",
 ]
 
 
