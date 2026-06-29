@@ -59,6 +59,14 @@ OFF_LANE: tuple[str, ...] = (
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
 EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "intern", "apprentice")
 
+# Advanced-degree knockout: "Scientist" titles (Research/Applied/ML/Data Scientist)
+# and JDs that require a PhD or Master's are a hard credential gap for a candidate
+# without an advanced degree, regardless of how well the lane otherwise scores.
+ADVANCED_DEGREE: tuple[str, ...] = (
+    "phd", "ph.d", "doctorate", "doctoral", "master's degree", "masters degree",
+    "ms or phd", "graduate degree", "advanced degree", "requires a phd",
+)
+
 # US-location signals. When a location is present but shows none of these, the
 # posting is treated as non-US-only and parked.
 US_SIGNALS: tuple[str, ...] = (
@@ -70,8 +78,8 @@ US_SIGNALS: tuple[str, ...] = (
 
 # The reasons curate can assign (stable vocabulary for summaries and tests).
 PARK_REASONS: tuple[str, ...] = (
-    "already-applied", "excluded-company", "excluded-domain",
-    "over-level", "off-lane", "non-us-only", "hard-skill-gap",
+    "already-applied", "excluded-company", "excluded-domain", "over-level",
+    "advanced-degree", "off-lane", "non-us-only", "hard-skill-gap",
 )
 
 
@@ -116,6 +124,8 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "excluded-domain"
     if any(t in title for t in RAILS.overlevel_terms) or any(t in title for t in EXTRA_LEVEL):
         return "over-level"
+    if "scientist" in title or any(d in blob for d in ADVANCED_DEGREE):
+        return "advanced-degree"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):

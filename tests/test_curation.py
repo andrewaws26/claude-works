@@ -53,6 +53,14 @@ def test_already_applied_company_is_parked():
     assert res.parked and res.parked[0][1] == "already-applied"
 
 
+def test_scientist_and_phd_are_parked_advanced_degree():
+    # "Scientist" titles and PhD-required JDs are a credential knockout, even in-lane.
+    res = curation.curate([_job("Applied AI/ML Scientist")])
+    assert res.parked and res.parked[0][1] == "advanced-degree"
+    res2 = curation.curate([_job("AI Engineer", company="Acme (PhD required)")])
+    assert res2.parked and res2.parked[0][1] == "advanced-degree"
+
+
 def test_non_us_only_is_parked():
     res = curation.curate([_job("AI Engineer", location="London, United Kingdom", remote=False)])
     assert res.parked and res.parked[0][1] == "non-us-only"
