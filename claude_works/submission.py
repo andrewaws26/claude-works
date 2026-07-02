@@ -70,6 +70,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "A remote flag can still hide 'N days/week in office' in the body; read the description before treating as remote.",
         "Trust the application-page header 'Location Type' field (Remote / Hybrid / Onsite) over the posting-api isRemote flag, which is unreliable: a posting can report isRemote=true while the page header reads Location Type=Hybrid for a specific city, so only a header of 'Remote' clears a remote-first filter.",
         "Headless JD screening: the per-job posting-api endpoint returns Unauthorized, but the board endpoint posting-api/job-board/<org> returns the whole board as {jobs:[...]}; filter by job id (a missing id means the posting is closed). Each job carries title, location, isRemote, secondaryLocations, compensation, applyUrl, and descriptionHtml, and secondaryLocations[].address country fields give a fast location screen before opening a browser.",
+        "Some boards run server-side bot detection that rejects a fully-valid headless submit with an alert 'We couldn't submit your application. Your application submission was flagged as possible spam. Please submit your application again.' The form clears and re-submitting from the same automated browser gets flagged again, because it is fingerprinting the automation, not validating the data. Treat it as a robot wall, not a captcha to defeat: do not re-submit in a loop (repeat attempts look like the spam being blocked), park the application with the resume and answers prepared, and have a human submit once from an ordinary browser.",
+        "On newer boards the selected Yes/No state is the class _active_* rather than _act, and an accessibility snapshot may only mark the last group active, so verify each group's selected class by reading the DOM rather than trusting the snapshot.",
     ],
     "greenhouse": [
         "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
@@ -90,6 +92,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
         "Resume: setInputFiles on the hidden input#resume-upload-input (do not click through the captcha overlay).",
         "Radios: set by clicking the input matched on its label text; the generic fill-form helper malforms non-boolean setChecked values.",
+        "Required consent checkbox sits under the hCaptcha widget: once the challenge renders, the captcha iframe subtree intercepts pointer events and a normal click on the checkbox times out. Set it programmatically (checked=true, then dispatch input+change+click) before parking so the form is fully ready for the human.",
+        "Lever auto-parses the uploaded resume and may auto-fill current location and current company from it; leave those unless wrong.",
     ],
     "workable": [
         "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
