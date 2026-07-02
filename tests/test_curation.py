@@ -66,6 +66,19 @@ def test_non_us_only_is_parked():
     assert res.parked and res.parked[0][1] == "non-us-only"
 
 
+def test_region_in_title_is_parked_non_us_region():
+    # Regional roles often carry a bare "Hybrid" location, so the location rule
+    # never fires; the title itself is the signal (incl. language requirements).
+    for title in (
+        "Solutions Engineer, Benelux",
+        "Solutions Engineer, Nordics",
+        "Solutions Engineer, Central & Eastern Europe - Hebrew Speaking",
+        "Solutions Engineer, EMEA",
+    ):
+        res = curation.curate([_job(title, location="Hybrid", remote=False)])
+        assert res.parked and res.parked[0][1] == "non-us-region", title
+
+
 def test_hard_skill_gap_is_parked():
     res = curation.curate([_job("Kubernetes Platform Engineer", company="Acme Spark Kafka")])
     assert res.parked and res.parked[0][1] == "hard-skill-gap"

@@ -17,6 +17,7 @@ dependencies and the unit tests stay fast.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
@@ -85,6 +86,17 @@ LEAD_BODY: tuple[str, ...] = (
     "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
 )
 
+# Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
+# "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
+# location rule never fires; the title itself is the reliable signal. Also catches
+# "<language> Speaking" requirements. Learned from runtime skips of regional roles.
+REGION_TITLE = re.compile(
+    r"\b(benelux|nordics?|emea|apac|dach|latam|anz|iberia|europe|european|"
+    r"united kingdom|ireland|germany|france|spain|italy|poland|netherlands|"
+    r"japan|singapore|australia|new zealand|brazil|mexico|canada|korea|israel|"
+    r"middle east|africa)\b|[a-z]+[- ]speaking",
+)
+
 # US-location signals. When a location is present but shows none of these, the
 # posting is treated as non-US-only and parked.
 US_SIGNALS: tuple[str, ...] = (
@@ -103,7 +115,7 @@ CHANNEL_BONUS: dict[str, int] = {"ashby": 2, "workable": 1, "greenhouse": 1, "le
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
     "advanced-degree", "lead-in-body", "model-training", "onsite-hybrid",
-    "off-lane", "non-us-only", "hard-skill-gap",
+    "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
 )
 
 
@@ -158,6 +170,8 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "onsite-hybrid"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
+    if REGION_TITLE.search(title):
+        return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
         return "non-us-only"
     if any(s in blob for s in RAILS.hard_gap_skills):
