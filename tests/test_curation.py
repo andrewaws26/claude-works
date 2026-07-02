@@ -53,6 +53,22 @@ def test_already_applied_company_is_parked():
     assert res.parked and res.parked[0][1] == "already-applied"
 
 
+def test_already_applied_matches_url_org_when_name_is_missing():
+    # Discovery rows sometimes lack a parseable company name; the ATS URL org is
+    # the authoritative identity and must still hit the applied-ledger de-dup.
+    job = Job(
+        title="AI Engineer",
+        company="?",
+        url="https://jobs.ashbyhq.com/acme-widgets/12345678-90ab-cdef-1234-567890abcdef",
+        location="Remote, US",
+        remote=True,
+        ats="ashby",
+    )
+    assert job.url_org_slug == "acmewidgets"
+    res = curation.curate([job], applied_slugs={"acmewidgets"})
+    assert res.parked and res.parked[0][1] == "already-applied"
+
+
 def test_scientist_and_phd_are_parked_advanced_degree():
     # "Scientist" titles and PhD-required JDs are a credential knockout, even in-lane.
     res = curation.curate([_job("Applied AI/ML Scientist")])

@@ -95,6 +95,30 @@ class Job:
     def company_slug(self) -> str:
         return _slug(self.company)
 
+    @property
+    def url_org_slug(self) -> str:
+        """Org slug parsed from the apply URL.
+
+        The de-dup fallback for ledger matching: discovery rows sometimes carry a
+        missing or differently spelled company name, and the ATS URL org is the
+        authoritative identity in those cases. Empty string when the URL is not a
+        recognized ATS board.
+        """
+        import re
+        from urllib.parse import unquote
+
+        u = unquote(self.url or "")
+        for pat in (
+            r"ashbyhq\.com/([^/?#]+)",
+            r"workable\.com/([^/?#]+)",
+            r"greenhouse\.io/(?:embed/job_board\?for=)?([^/?#&]+)",
+            r"lever\.co/([^/?#]+)",
+        ):
+            m = re.search(pat, u, re.I)
+            if m:
+                return _slug(m.group(1).replace("-", " "))
+        return ""
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["role_key"] = self.role_key

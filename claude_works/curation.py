@@ -154,6 +154,8 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
     blob = _blob(job)
     if job.company_slug and job.company_slug in applied_slugs:
         return "already-applied"
+    if job.url_org_slug and job.url_org_slug in applied_slugs:
+        return "already-applied"
     if any(co in blob for co in RAILS.excluded_companies):
         return "excluded-company"
     if any(dom in blob for dom in RAILS.excluded_domains):
