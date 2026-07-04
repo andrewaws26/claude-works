@@ -20,7 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .config import PATHS, RAILS
+from .config import PATHS, RAILS, policy_tuple
 from .models import Job, Score, SearchAngle
 
 # --------------------------------------------------------------------------- #
@@ -112,15 +112,20 @@ def _angle_bias_terms(angle: str | None) -> tuple[str, ...]:
 # Scoring (FIT_RUBRIC.md)
 # --------------------------------------------------------------------------- #
 
-# Core-stack signals (the actual day-job Andrew does daily). Up to +4.
-_CORE = ("anthropic", "claude", "mcp", "agent", "agentic", "llm", "eval",
-         "playwright", "openai", "rag", "prompt", "guardrail", "applied ai")
-# Rare-edge signals (few candidates have these; Andrew genuinely does). Up to +3.
-_EDGE = ("edge", "can bus", "j1939", "robotics", "iot", "industrial", "telematics",
-         "hipaa", "healthcare", "clinical", "document", "extraction", "forward deployed",
-         "first engineer", "founding engineer", "devrel", "developer advocate", "mandarin")
+# The scoring vocabularies are per-candidate; the defaults are one candidate's
+# profile and a policy.json in the data dir replaces any of them wholesale.
+# Core-stack signals (the candidate's actual daily work). Up to +4.
+_CORE = policy_tuple("core_signals", (
+    "anthropic", "claude", "mcp", "agent", "agentic", "llm", "eval",
+    "playwright", "openai", "rag", "prompt", "guardrail", "applied ai"))
+# Rare-edge signals (few candidates have these; this one genuinely does). Up to +3.
+_EDGE = policy_tuple("edge_signals", (
+    "edge", "can bus", "j1939", "robotics", "iot", "industrial", "telematics",
+    "hipaa", "healthcare", "clinical", "document", "extraction", "forward deployed",
+    "first engineer", "founding engineer", "devrel", "developer advocate", "mandarin"))
 # Level-fit positives (+2) and a clean-channel bonus (+1).
-_LEVEL_OK = ("mid", "ic", "first hire", "first technical", "2-5", "2 to 5")
+_LEVEL_OK = policy_tuple("level_ok_signals", (
+    "mid", "ic", "first hire", "first technical", "2-5", "2 to 5"))
 
 
 def score_job(job: Job, angle: str | None = None, jd_text: str = "") -> Score:

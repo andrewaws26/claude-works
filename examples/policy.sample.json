@@ -1,0 +1,24 @@
+{
+  "_comment": "Per-candidate policy. Copy this next to your trackers (JOBSEARCH_DATA_DIR) as policy.json and edit. Any key you define replaces the built-in default wholesale; any key you omit keeps the default. An empty list turns that check off deliberately.",
+
+  "comp_floor": 110000,
+  "pursue_threshold": 7.0,
+
+  "hard_gap_skills": ["cobol", "salesforce admin", "unreal engine"],
+  "overlevel_terms": ["staff", "principal", "director", "head of", "vp", "vice president", "chief", "manager"],
+  "excluded_domains": ["gambling", "tobacco"],
+  "excluded_companies": ["initech"],
+
+  "core_signals": ["python", "llm", "agent", "rag", "eval", "mcp", "prompt", "typescript"],
+  "edge_signals": ["fintech", "payments", "compliance", "risk", "sql", "etl"],
+  "level_ok_signals": ["mid", "ic", "2-5", "2 to 5"],
+
+  "lane_points": {
+    "applied ai": 6,
+    "ai engineer": 5,
+    "data engineer": 5,
+    "backend": 4,
+    "software engineer": 3
+  },
+  "off_lane_titles": ["designer", "recruiter", "account executive", "marketing", "research scientist"]
+}

@@ -22,13 +22,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .config import RAILS
+from .config import POLICY, RAILS, policy_tuple
 from .discovery import excluded_company_match
 from .models import Job
 
 # Role-title lanes the candidate converts in, with fit points (strongest first).
 # These bias the active queue so the loop applies to the best-matching role first.
-LANE_POINTS: dict[str, int] = {
+# Per-candidate: a "lane_points" object in policy.json replaces this table.
+_DEFAULT_LANE_POINTS: dict[str, int] = {
     "forward deployed": 6,
     "applied ai": 5,
     "ai engineer": 5,
@@ -47,9 +48,13 @@ LANE_POINTS: dict[str, int] = {
     "platform engineer": 3,
     "support engineer": 3,
 }
+LANE_POINTS: dict[str, int] = (
+    {str(k).lower(): int(v) for k, v in POLICY["lane_points"].items()}
+    if "lane_points" in POLICY else _DEFAULT_LANE_POINTS
+)
 
 # Off-lane titles to park (design / sales / consulting / research / non-software).
-OFF_LANE: tuple[str, ...] = (
+OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "design engineer", "designer", "ux ", "ui/ux", "consultant", "value engineer",
     "pre-sales", "presales", "sales engineer", "recruiter", "sourcer", " sales",
     "account executive", "account manager", "marketing", "copywriter",
@@ -57,7 +62,7 @@ OFF_LANE: tuple[str, ...] = (
     "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
     "technician",
-)
+))
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
 EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "intern", "apprentice")

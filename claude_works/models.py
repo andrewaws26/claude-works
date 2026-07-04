@@ -11,7 +11,7 @@ The five core types map onto the pipeline stages:
 
 A discovery sweep yields ``Job`` records; ``Score`` is the fit-rubric verdict for
 a job; ``Resume`` is the artifact built for a job; ``Application`` is one row in
-the ledger. ``SearchAngle`` is one of Andrew's reusable search lenses.
+the ledger. ``SearchAngle`` is one of the candidate's reusable search lenses.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def _slug(text: str) -> str:
 class SearchAngle:
     """One reusable search lens from ``SEARCH_ANGLES.md``.
 
-    Angles are lenses Andrew has explicitly defined (FDE, IoT, and so on). Each
+    Angles are lenses the candidate has explicitly defined (FDE, IoT, and so on). Each
     pairs a trigger phrase with a definition and the titles to target,
     so an agent can run "that kind of search" on request.
     """
@@ -62,8 +62,8 @@ class Job:
 
     ``role_key`` is the canonical per-role identity (ATS + org slug + job id) used
     for de-duplication. De-dup is always by ROLE, never by company: the same
-    company with a different role is allowed, which is how Andrew got the Samsara
-    interview.
+    company with a different role is allowed; interviews have come from exactly
+    that second-role opening.
     """
 
     title: str

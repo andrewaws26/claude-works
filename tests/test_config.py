@@ -41,3 +41,37 @@ def test_rails_from_env_reads_overrides_at_call_time(monkeypatch):
     rails = config.Rails.from_env()
     assert rails.comp_floor == 99000
     assert rails.pursue_threshold == 8.5
+
+
+def test_load_policy_absent_returns_empty(tmp_path):
+    assert config.load_policy(tmp_path / "policy.json") == {}
+
+
+def test_load_policy_invalid_fails_loudly(tmp_path):
+    bad = tmp_path / "policy.json"
+    bad.write_text("{not json", encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        config.load_policy(bad)
+    not_obj = tmp_path / "policy2.json"
+    not_obj.write_text("[1, 2]", encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        config.load_policy(not_obj)
+
+
+def test_rails_from_policy_replaces_lists_wholesale(monkeypatch):
+    monkeypatch.delenv("JOBSEARCH_COMP_FLOOR", raising=False)
+    rails = config.Rails.from_env(policy={
+        "comp_floor": 90000,
+        "excluded_companies": ["Initech"],
+        "hard_gap_skills": [],
+    })
+    assert rails.comp_floor == 90000
+    assert rails.excluded_companies == ("initech",)
+    assert rails.hard_gap_skills == ()          # empty list turns the check off
+    assert "director" in rails.overlevel_terms  # omitted key keeps the default
+
+
+def test_env_beats_policy_for_numbers(monkeypatch):
+    monkeypatch.setenv("JOBSEARCH_COMP_FLOOR", "150000")
+    rails = config.Rails.from_env(policy={"comp_floor": 90000})
+    assert rails.comp_floor == 150000

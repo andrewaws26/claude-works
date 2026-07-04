@@ -162,6 +162,29 @@ All configuration is environment driven. Nothing sensitive is stored in the repo
 | `JOBSEARCH_APPLY_WEBSITE`, `JOBSEARCH_APPLY_LINKEDIN`, `JOBSEARCH_APPLY_GITHUB` | Profile links for application forms, read the same way. |
 | `JOBSEARCH_APPLY_USERNAME`, `JOBSEARCH_APPLY_PASSWORD` | Portal credentials, read from the environment only and never stored. A missing credential fails loudly instead of silently mis-filling a form. |
 
+## Running it for your own search
+
+The defaults encode one candidate's policy: his excluded companies (active interview tracks), his skill gaps, his scoring vocabulary. None of that transfers, so none of it requires editing code to change. Drop a `policy.json` next to your trackers (in `JOBSEARCH_DATA_DIR`) and any key you define replaces the corresponding default wholesale; [examples/policy.sample.json](./examples/policy.sample.json) shows every supported key:
+
+| Key | Controls |
+| --- | --- |
+| `comp_floor`, `pursue_threshold` | The comp floor and the 0-10 pursue gate (env vars still win). |
+| `hard_gap_skills` | Skills you lack that, when hard-required, disqualify a role. |
+| `overlevel_terms`, `level_ok_signals` | What counts as over-level vs level-fit for you. |
+| `excluded_domains`, `excluded_companies` | Rails: domains you refuse and companies you must not (re-)apply to. |
+| `core_signals`, `edge_signals` | Your scoring vocabulary: daily-stack terms and rare-differentiator terms. |
+| `lane_points`, `off_lane_titles` | Curation's title lanes and what gets parked as off-lane. |
+
+A policy file that exists but does not parse fails loudly at import; running silently on someone else's exclusion list is exactly the kind of quiet wrongness this codebase refuses.
+
+What you bring yourself:
+
+- **Identity**: the `JOBSEARCH_APPLY_*` environment variables (name, contact, profile links, portal credentials). Nothing personal is in the repo.
+- **A queue and ledger**: start with empty files; `record_application` creates the ledger on first append.
+- **Search angles**: write your own `SEARCH_ANGLES.md` (the demo one shows the format).
+- **Resume fragments**: the resume tools drive a claims-bank generator; copy `examples/resumes/_genlib.py` and replace the fragments with claims that are true of you. The gates then hold you to them.
+- **Discovery sources**: the `newsource`/`board_harvest` sources wrap private harvest scripts that are not in this repo. Bring your own source scripts, or feed roles in via `score_job`/`curate_queue` from whatever discovery you already have. The `demo` source works everywhere.
+
 ## Design principles
 
 **Honesty is enforced in the modules, not the prompt.** Three concrete mechanisms:

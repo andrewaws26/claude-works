@@ -125,10 +125,10 @@ class SubmissionPlan:
     """The deterministic plan a Playwright agent executes for one application.
 
     ``action`` is either ``auto_submit`` (fill everything and submit) or
-    ``fill_and_park`` (fill everything that does not need Andrew, then stop at the
+    ``fill_and_park`` (fill everything that does not need the candidate, then stop at the
     captcha / human step and log it). ``fields`` is the standard data to enter;
     ``screening_answers`` are the honest answers; ``human_step`` describes the one
-    thing left for Andrew when parked. ``resume_path`` is the PDF to upload.
+    thing left for the candidate when parked. ``resume_path`` is the PDF to upload.
     """
 
     job: dict[str, Any]
