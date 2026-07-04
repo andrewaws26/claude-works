@@ -22,7 +22,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 from .config import PATHS
 from .models import Resume
@@ -53,7 +52,8 @@ def list_claim_fragments() -> dict[str, list[str]]:
     roles = sorted(getattr(g, "ROLES", {}).keys())
     bullets = sorted(
         k for k, v in vars(g).items()
-        if isinstance(v, str) and k.isupper() and not k.startswith("P_") and "<b>" not in v and k not in ("HDR", "EDU")
+        if isinstance(v, str) and k.isupper() and not k.startswith(("P_", "_"))
+        and "<b>" not in v and k not in ("HDR", "EDU")
     )
     projects = sorted(k for k, v in vars(g).items() if isinstance(v, str) and k.startswith("P_"))
     return {"roles": roles, "bullets": bullets, "projects": projects}
@@ -113,12 +113,21 @@ def render_resume(name: str) -> Resume:
     out = proc.stdout + proc.stderr
     m = re.search(r"pages:\s*(\d+)", out)
     pages = int(m.group(1)) if m else None
+    if pages is None:
+        # The render never reported a page count: that is a failed render, which
+        # is a different finding than a successful render of the wrong length.
+        tail = " | ".join(line for line in out.strip().splitlines()[-3:] if line.strip())
+        findings = [f"render failed (exit {proc.returncode}, no page count): {tail or 'no output'}"]
+    elif pages != 1:
+        findings = [f"render produced {pages} pages (want 1)"]
+    else:
+        findings = []
     return Resume(
         name=name,
         html_path=str(html_path),
         pdf_path=str(PATHS.resumes / f"{name}.pdf"),
-        one_page=(pages == 1),
-        findings=[] if pages == 1 else [f"render produced {pages} pages (want 1)"],
+        one_page=None if pages is None else (pages == 1),
+        findings=findings,
     )
 
 

@@ -14,7 +14,7 @@ list of active interview tracks that must never be re-applied to.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 # Data root = the directory holding the tracker, queue, and standing-policy
@@ -65,13 +65,17 @@ class Rails:
     lines the system will not cross: it never fabricates, never solves captchas,
     never auto-sends outbound, and never applies to excluded domains or active
     interview tracks.
+
+    Construct via ``Rails.from_env()`` to pick up the ``JOBSEARCH_*`` overrides at
+    call time (the module-level ``RAILS`` is built that way at import). Plain
+    construction takes explicit values, which is what tests use.
     """
 
     # Base comp floor (USD/yr). Configurable; refinement default set by Andrew.
-    comp_floor: int = int(os.environ.get("JOBSEARCH_COMP_FLOOR", "120000"))
+    comp_floor: int = 120000
 
     # Pursue jobs scoring at or above this on the 0-10 rubric.
-    pursue_threshold: float = float(os.environ.get("JOBSEARCH_PURSUE_THRESHOLD", "7.0"))
+    pursue_threshold: float = 7.0
 
     # Hard-required skills Andrew lacks -> cap the score (disqualify as best-fit).
     hard_gap_skills: tuple[str, ...] = (
@@ -107,8 +111,21 @@ class Rails:
             "password": "JOBSEARCH_APPLY_PASSWORD",
         }.get(field_name, "")
 
+    @classmethod
+    def from_env(cls) -> Rails:
+        """Build a ``Rails`` reading the numeric overrides from the environment.
 
-RAILS = Rails()
+        Reading happens here, at instantiation, not at class-definition time, so a
+        test (or a re-launched server) that sets ``JOBSEARCH_COMP_FLOOR`` or
+        ``JOBSEARCH_PURSUE_THRESHOLD`` and calls ``from_env()`` sees its values.
+        """
+        return cls(
+            comp_floor=int(os.environ.get("JOBSEARCH_COMP_FLOOR", "120000")),
+            pursue_threshold=float(os.environ.get("JOBSEARCH_PURSUE_THRESHOLD", "7.0")),
+        )
+
+
+RAILS = Rails.from_env()
 
 
 def get_credential(field_name: str) -> str:

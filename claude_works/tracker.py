@@ -10,13 +10,17 @@ De-duplication is by ROLE (org + job id), never by company.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import tempfile
+from collections.abc import Iterable, Iterator
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .config import PATHS
-from .models import Application, Job
+from .models import Application, Job, _slug
 
 
 def _load_json(path: Path, default: Any) -> Any:
@@ -24,6 +28,47 @@ def _load_json(path: Path, default: Any) -> Any:
         return default
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+@contextlib.contextmanager
+def _ledger_lock(path: Path) -> Iterator[None]:
+    """Hold an exclusive advisory lock for a read-modify-write on ``path``.
+
+    Multiple loop instances share the ledger; without this, two concurrent
+    ``record_application`` calls can each read the same document and the second
+    write silently drops the first row. The lock lives on a sidecar ``.lock``
+    file so it also serializes with a writer that replaces the ledger itself.
+    On platforms without ``fcntl`` (Windows) it degrades to no locking.
+    """
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    try:
+        import fcntl
+    except ImportError:  # pragma: no cover - non-POSIX fallback
+        yield
+        return
+    with open(lock_path, "w") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lk, fcntl.LOCK_UN)
+
+
+def _write_json_atomic(path: Path, doc: Any, indent: int = 1) -> None:
+    """Write JSON to a temp file in the same directory, then ``os.replace``.
+
+    A crash mid-write leaves the old document intact instead of a truncated,
+    corrupt one; readers never observe a half-written file.
+    """
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=indent)
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
 
 
 def load_applications(path: Path | None = None) -> dict[str, Any]:
@@ -60,8 +105,6 @@ def already_applied(company: str, role: str, path: Path | None = None) -> bool:
     Company is normalized the same way as the harvest scripts; role is matched
     case-insensitively. Same company / different role is NOT a duplicate.
     """
-    from .models import _slug
-
     target = (_slug(company), (role or "").strip().lower())
     for a in load_applications(path)["applications"]:
         if (_slug(a.get("company", "")), (a.get("role", "") or "").strip().lower()) == target:
@@ -70,20 +113,32 @@ def already_applied(company: str, role: str, path: Path | None = None) -> bool:
 
 
 def record_application(app: Application, path: Path | None = None) -> dict[str, Any]:
-    """Append one row to the ledger and persist it, de-duped by (company, role).
+    """Append one row to the ledger and persist it, de-duped by role.
 
-    Fills ``date`` with today if blank. Returns a small status dict. The write
-    preserves the document's ``generated`` and ``applicant`` keys untouched.
+    De-dup runs two checks: the (company slug, role title) pair, and, when an
+    ``apply_url`` is present, the canonical ``role_key`` parsed from it. The
+    second catches the same role re-entering under a differently spelled company
+    name, which the pair check misses. Fills ``date`` with today if blank.
+    Returns a small status dict. The write holds an exclusive lock for the whole
+    read-modify-write (parallel loop instances share this file) and is atomic
+    (temp file + ``os.replace``), and preserves the document's ``generated`` and
+    ``applicant`` keys untouched.
     """
     p = path or PATHS.applications
-    doc = load_applications(p)
     if not app.date:
         app.date = date.today().isoformat()
-    if already_applied(app.company, app.role, p):
-        return {"recorded": False, "reason": "duplicate (company, role)", "company": app.company, "role": app.role}
-    doc["applications"].append(app.to_dict())
-    with open(p, "w", encoding="utf-8") as fh:
-        json.dump(doc, fh, indent=1)
+    with _ledger_lock(p):
+        doc = load_applications(p)
+        if already_applied(app.company, app.role, p):
+            return {"recorded": False, "reason": "duplicate (company, role)",
+                    "company": app.company, "role": app.role}
+        if app.apply_url:
+            rk = Job(title=app.role, company=app.company, url=app.apply_url).role_key
+            if not rk.startswith("raw:") and rk in applied_role_keys(p):
+                return {"recorded": False, "reason": f"duplicate (role_key {rk})",
+                        "company": app.company, "role": app.role}
+        doc["applications"].append(app.to_dict())
+        _write_json_atomic(p, doc)
     return {"recorded": True, "total": len(doc["applications"]), "company": app.company, "role": app.role}
 
 
@@ -119,6 +174,24 @@ def queue_jobs(status: str = "todo", path: Path | None = None) -> list[Job]:
             )
         )
     return out
+
+
+def applied_company_slugs(path: Path | None = None) -> set[str]:
+    """Normalized org identities already in the ledger, for curation's de-dup.
+
+    Includes both the slugged company name and the org slug parsed from each
+    row's apply URL, because discovery rows sometimes carry a missing or
+    differently spelled company name and the ATS URL org is authoritative then.
+    """
+    slugs: set[str] = set()
+    for a in load_applications(path)["applications"]:
+        s = _slug(a.get("company", ""))
+        if s:
+            slugs.add(s)
+        org = Job.from_dict(a).url_org_slug
+        if org:
+            slugs.add(org)
+    return slugs
 
 
 def applied_role_keys(path: Path | None = None) -> set[str]:

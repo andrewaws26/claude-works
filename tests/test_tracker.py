@@ -84,3 +84,39 @@ def test_queue_jobs_parses_label_and_status(tmp_path):
     assert todo[0].title == "AI Engineer"
     assert todo[0].company == "Acme"
     assert todo[0].remote is True
+
+
+def test_record_application_dedupes_by_role_key_across_company_spellings(tmp_path):
+    ledger = tmp_path / "applications.json"
+    url = "https://jobs.ashbyhq.com/bland-ai/12345678-90ab-cdef-1234-567890abcdef"
+    first = tracker.record_application(
+        Application(company="Bland AI", role="AI Engineer", apply_url=url), path=ledger
+    )
+    assert first["recorded"] is True
+    # Same role re-entering under a differently spelled company name: caught by
+    # the canonical role_key parsed from the apply URL.
+    dup = tracker.record_application(
+        Application(company="Bland", role="AI Engineer (Remote)", apply_url=url), path=ledger
+    )
+    assert dup["recorded"] is False
+    assert "role_key" in dup["reason"]
+
+
+def test_record_application_write_is_atomic_no_tmp_left_behind(tmp_path):
+    ledger = tmp_path / "applications.json"
+    tracker.record_application(Application(company="Acme", role="AI Engineer"), path=ledger)
+    leftovers = [p for p in tmp_path.iterdir() if p.suffix == ".tmp"]
+    assert leftovers == []
+    assert json.loads(ledger.read_text())["applications"][0]["company"] == "Acme"
+
+
+def test_applied_company_slugs_includes_name_and_url_org(tmp_path):
+    ledger = tmp_path / "applications.json"
+    tracker.record_application(
+        Application(company="Acme, Inc.", role="AI Engineer",
+                    apply_url="https://jobs.ashbyhq.com/acme-widgets/12345678-90ab-cdef-1234-567890abcdef"),
+        path=ledger,
+    )
+    slugs = tracker.applied_company_slugs(path=ledger)
+    assert "acme" in slugs          # from the company name
+    assert "acmewidgets" in slugs   # from the apply-URL org

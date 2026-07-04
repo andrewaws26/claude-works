@@ -87,3 +87,27 @@ def test_every_plan_carries_the_general_gotchas_memory():
         Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x")
     )
     assert any("remote flag is not proof" in n for n in plan.notes)
+
+
+def test_identity_fields_come_from_env_only(monkeypatch):
+    # No env set: the plan carries no identity PII at all (nothing is hard-coded).
+    for var in ("JOBSEARCH_APPLY_NAME", "JOBSEARCH_APPLY_EMAIL", "JOBSEARCH_APPLY_PHONE",
+                "JOBSEARCH_APPLY_LOCATION", "JOBSEARCH_APPLY_WEBSITE",
+                "JOBSEARCH_APPLY_LINKEDIN", "JOBSEARCH_APPLY_GITHUB"):
+        monkeypatch.delenv(var, raising=False)
+    bare = submission.plan_submission(Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x"))
+    assert bare.fields == {}
+
+    monkeypatch.setenv("JOBSEARCH_APPLY_NAME", "Jordan Example")
+    monkeypatch.setenv("JOBSEARCH_APPLY_GITHUB", "github.com/jordan-example")
+    filled = submission.plan_submission(Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x"))
+    assert filled.fields["name"] == "Jordan Example"
+    assert filled.fields["github"] == "github.com/jordan-example"
+
+
+def test_rail_block_is_whole_word_not_substring():
+    # 'axon' excluded must not block 'Axonius'.
+    plan = submission.plan_submission(
+        Job("AI Engineer", "Axonius", "https://jobs.ashbyhq.com/axonius/x")
+    )
+    assert plan.action != "blocked"

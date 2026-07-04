@@ -16,7 +16,7 @@ the ledger. ``SearchAngle`` is one of Andrew's reusable search lenses.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -125,7 +125,7 @@ class Job:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Job":
+    def from_dict(cls, d: dict[str, Any]) -> Job:
         return cls(
             title=d.get("title", ""),
             company=d.get("company", "") or d.get("org", ""),
@@ -210,7 +210,7 @@ class Application:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Application":
+    def from_dict(cls, d: dict[str, Any]) -> Application:
         return cls(
             company=d.get("company", ""),
             role=d.get("role", ""),

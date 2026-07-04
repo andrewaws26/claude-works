@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import importlib.util
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .config import PATHS, RAILS
 from .models import Job, Score, SearchAngle
-
 
 # --------------------------------------------------------------------------- #
 # Search angles (parsed from SEARCH_ANGLES.md)
@@ -137,7 +137,7 @@ def score_job(job: Job, angle: str | None = None, jd_text: str = "") -> Score:
     # --- hard caps first (any one disqualifies) ---
     cap = _hard_cap(job, blob)
     if cap:
-        return Score(value=min(5.0, 5.0), pursue=False, reasons=[f"hard cap: {cap}"], hard_cap=cap, angle=angle or "")
+        return Score(value=5.0, pursue=False, reasons=[f"hard cap: {cap}"], hard_cap=cap, angle=angle or "")
 
     value = 0.0
 
@@ -192,9 +192,25 @@ def _hard_cap(job: Job, blob: str) -> str | None:
     for dom in RAILS.excluded_domains:
         if re.search(rf"\b{re.escape(dom)}\b", blob):
             return f"excluded domain ('{dom}')"
+    if (co := excluded_company_match(job)) is not None:
+        return f"excluded company / active track ('{co}')"
+    return None
+
+
+def excluded_company_match(job: Job) -> str | None:
+    """Return the matching excluded-company entry, or None.
+
+    Matching is deliberately narrow: a whole-word hit on the company name, or a
+    normalized-slug equality. A bare substring test would false-positive
+    ('axon' inside 'Axonius'), which is why ``in`` is never used here.
+    """
+    from .models import _slug
+
+    name = (job.company or "").lower()
+    slug = job.company_slug
     for co in RAILS.excluded_companies:
-        if co in job.company_slug or co.replace(" ", "") in job.company_slug:
-            return f"excluded company / active track ('{co}')"
+        if re.search(rf"\b{re.escape(co)}\b", name) or (slug and slug == _slug(co)):
+            return co
     return None
 
 
@@ -222,10 +238,40 @@ _SOURCES: dict[str, tuple[str, Callable[[Any], list]]] = {
     "anthropic": ("newsource_harvest.py", lambda m: m.anthropic_sweep()),
 }
 
+# Canned roles for the "demo" source: obviously-fictional companies, realistic
+# shapes. This is what makes a fresh clone exercisable end-to-end (discover ->
+# score -> curate -> plan -> record) with zero network and zero private scripts.
+_DEMO_JOBS: tuple[dict[str, Any], ...] = (
+    {"title": "Forward Deployed Engineer", "company": "Acme Agents",
+     "url": "https://jobs.ashbyhq.com/acme-agents/11111111-2222-3333-4444-555555555555",
+     "source": "demo", "location": "Remote, US", "remote": True, "ats": "Ashby"},
+    {"title": "Applied AI Engineer", "company": "Widget Intelligence",
+     "url": "https://boards.greenhouse.io/widgetintelligence/jobs/7010001",
+     "source": "demo", "location": "Remote (United States)", "remote": True, "ats": "Greenhouse"},
+    {"title": "Solutions Engineer, IoT Platform", "company": "Fleetly",
+     "url": "https://jobs.lever.co/fleetly/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+     "source": "demo", "location": "Remote, US", "remote": True, "ats": "Lever"},
+    {"title": "Principal Engineer, ML Infrastructure", "company": "Massive Scale Co",
+     "url": "https://boards.greenhouse.io/massivescale/jobs/7010002",
+     "source": "demo", "location": "San Francisco, CA", "remote": False, "ats": "Greenhouse"},
+    {"title": "AI Engineer (Kubernetes required)", "company": "Clusterly",
+     "url": "https://jobs.ashbyhq.com/clusterly/99999999-8888-7777-6666-555555555555",
+     "source": "demo", "location": "Remote, US", "remote": True, "ats": "Ashby"},
+    {"title": "Solutions Engineer, Benelux", "company": "Acme Agents",
+     "url": "https://jobs.ashbyhq.com/acme-agents/12121212-3434-5656-7878-909090909090",
+     "source": "demo", "location": "Hybrid", "remote": False, "ats": "Ashby"},
+    {"title": "Machine Learning Engineer, Defense Systems", "company": "Warfront Analytics",
+     "url": "https://boards.greenhouse.io/warfrontanalytics/jobs/7010003",
+     "source": "demo", "location": "Washington, DC", "remote": False, "ats": "Greenhouse"},
+    {"title": "Developer Advocate, Agent Tooling", "company": "Promptline",
+     "url": "https://jobs.ashbyhq.com/promptline/abcdefab-cdef-abcd-efab-cdefabcdefab",
+     "source": "demo", "location": "Remote, US", "remote": True, "ats": "Ashby"},
+)
+
 
 def available_sources() -> list[str]:
     """Names accepted by ``discover_jobs``'s ``source`` argument."""
-    return sorted(_SOURCES) + ["board_harvest"]
+    return sorted(_SOURCES) + ["board_harvest", "demo"]
 
 
 def discover_jobs(
@@ -238,15 +284,19 @@ def discover_jobs(
 
     ``source`` selects which live sweep to run: ``newsource`` (Getro VC networks +
     Anthropic-customer ATS boards, the highest-yield combo), ``getro``,
-    ``anthropic``, or ``board_harvest`` (the curated Ashby/Greenhouse seed miner).
+    ``anthropic``, ``board_harvest`` (the curated Ashby/Greenhouse seed miner), or
+    ``demo`` (canned fictional roles, no network, works from a fresh clone).
     ``angle`` biases ranking toward a lane from ``SEARCH_ANGLES.md``. Set
     ``network_ok=False`` to return an empty list without making any HTTP calls
-    (used by tests). Results are de-duped by role within the call and ranked by the
-    fit score; the ledger de-dup is applied separately by the tracker.
+    (used by tests; the offline ``demo`` source still returns its canned roles).
+    Results are de-duped by role within the call and ranked by the fit score; the
+    ledger de-dup is applied separately by the tracker.
     """
+    src = source.lower().strip()
+    if src == "demo":
+        return _rank([Job.from_dict(dict(r)) for r in _DEMO_JOBS], angle, limit)
     if not network_ok:
         return []
-    src = source.lower().strip()
     if src == "board_harvest":
         return _discover_board_harvest(angle, limit)
     if src not in _SOURCES:
@@ -281,15 +331,21 @@ def _discover_board_harvest(angle: str | None, limit: int) -> list[Job]:
 
 
 def _rank(jobs: list[Job], angle: str | None, limit: int) -> list[Job]:
-    """De-dup by role, score, and return the top ``limit`` by fit then remote."""
+    """De-dup by role, score, and return the top ``limit`` by fit then remote.
+
+    Hard-capped roles sort BELOW every clean role regardless of raw score: a
+    disqualified posting carries a flat cap value that would otherwise outrank a
+    modest-but-pursuable fit, and discovery must never surface a role the rails
+    forbid above one they allow.
+    """
     seen: set[str] = set()
-    scored: list[tuple[float, Job]] = []
+    scored: list[tuple[int, float, Job]] = []
     for j in jobs:
         rk = j.role_key
         if rk in seen:
             continue
         seen.add(rk)
         s = score_job(j, angle=angle)
-        scored.append((s.value, j))
-    scored.sort(key=lambda t: (-t[0], 0 if t[1].remote else 1))
-    return [j for _, j in scored[:limit]]
+        scored.append((0 if s.hard_cap is None else 1, s.value, j))
+    scored.sort(key=lambda t: (t[0], -t[1], 0 if t[2].remote else 1))
+    return [j for _, _, j in scored[:limit]]

@@ -23,7 +23,8 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from . import discovery, resume as resume_mod, submission, tracker
+from . import curation, discovery, submission, tracker
+from . import resume as resume_mod
 from .models import Application, Job
 
 mcp = FastMCP("claude-works")
@@ -50,6 +51,23 @@ def discover_jobs(angle: str = "", source: str = "newsource", limit: int = 25) -
     """
     jobs = discovery.discover_jobs(angle=angle or None, source=source, limit=limit, network_ok=True)
     return [j.to_dict() for j in tracker.dedupe_jobs(jobs)]
+
+
+@mcp.tool()
+def curate_queue(status: str = "todo", limit: int = 200) -> dict[str, Any]:
+    """Triage the discovery queue into a fit-ranked active set and a parked set.
+
+    Runs the curation pass over up to ``limit`` queue entries with the given queue
+    status: every job is either KEPT with a fit score (active, ranked best-match
+    first, so the loop applies to the strongest open role next) or PARKED with an
+    auditable reason (off-lane, over-level, non-US, onsite-hybrid, model-training,
+    excluded, already-applied, hard-skill-gap, ...). Already-applied detection uses
+    the ledger's company and ATS-org slugs. Nothing is discarded; parked roles keep
+    their reason so a human can review or restore them. Returns {active, parked,
+    counts}.
+    """
+    jobs = tracker.queue_jobs(status=status)[:limit]
+    return curation.curate(jobs, applied_slugs=tracker.applied_company_slugs()).to_dict()
 
 
 @mcp.tool()

@@ -33,3 +33,11 @@ def test_rails_policy_contains_expected_guards():
     assert config.RAILS.pursue_threshold > 0
     assert "director" in config.RAILS.overlevel_terms
     assert "defense" in config.RAILS.excluded_domains
+
+
+def test_rails_from_env_reads_overrides_at_call_time(monkeypatch):
+    monkeypatch.setenv("JOBSEARCH_COMP_FLOOR", "99000")
+    monkeypatch.setenv("JOBSEARCH_PURSUE_THRESHOLD", "8.5")
+    rails = config.Rails.from_env()
+    assert rails.comp_floor == 99000
+    assert rails.pursue_threshold == 8.5

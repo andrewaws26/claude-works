@@ -18,10 +18,12 @@ dependencies and the unit tests stay fast.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any
 
 from .config import RAILS
+from .discovery import excluded_company_match
 from .models import Job
 
 # Role-title lanes the candidate converts in, with fit points (strongest first).
@@ -156,7 +158,7 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "already-applied"
     if job.url_org_slug and job.url_org_slug in applied_slugs:
         return "already-applied"
-    if any(co in blob for co in RAILS.excluded_companies):
+    if excluded_company_match(job) is not None:
         return "excluded-company"
     if any(dom in blob for dom in RAILS.excluded_domains):
         return "excluded-domain"

@@ -77,3 +77,19 @@ def test_angle_bias_lookup_is_case_insensitive():
     assert discovery._angle_bias_terms("FDE")
     assert discovery._angle_bias_terms("fde") == discovery._angle_bias_terms("FDE")
     assert discovery._angle_bias_terms(None) == ()
+
+
+def test_excluded_company_match_is_whole_word_not_substring():
+    # 'axon' is excluded; 'Axonius' is a different company and must not match.
+    assert discovery.excluded_company_match(Job("AI Engineer", "Axonius", "")) is None
+    assert discovery.excluded_company_match(Job("AI Engineer", "Samsara", "")) == "samsara"
+    # Slug equality catches spelling variants of a single excluded org.
+    assert discovery.excluded_company_match(Job("AI Engineer", "One Digital", "")) == "onedigital"
+
+
+def test_hard_cap_excluded_company_uses_narrow_match():
+    ok = discovery.score_job(Job("AI Engineer", "Axonius",
+                                 "https://jobs.ashbyhq.com/axonius/12345678-90ab-cdef-1234-567890abcdef"))
+    assert ok.hard_cap is None
+    capped = discovery.score_job(Job("AI Engineer", "Samsara", ""))
+    assert capped.hard_cap is not None and capped.pursue is False

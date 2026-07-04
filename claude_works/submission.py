@@ -23,16 +23,17 @@ real outcome back through ``record_application``.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .config import RAILS, get_credential
+from .discovery import excluded_company_match
 from .models import Job
 
-
 # Standard, honest answers to common screening questions (AUTHORIZATIONS.md).
-# These are policy, not secrets. Identity/contact PII and credentials are pulled
-# from the environment at call time, never hard-coded here.
+# These are policy, not secrets, and they contain no PII: every identity field
+# (name, email, links) is pulled from the environment at call time, never
+# hard-coded here.
 STANDARD_ANSWERS: dict[str, str] = {
     "authorized_to_work_us": "Yes",
     "require_sponsorship": "No",
@@ -45,9 +46,6 @@ STANDARD_ANSWERS: dict[str, str] = {
     "veteran_status": "Decline to self-identify",
     "disability_status": "I do not want to answer",
     "how_did_you_hear": "LinkedIn",
-    "website_portfolio": "github.com/andrewaws26",
-    "linkedin": "linkedin.com/in/andrewdsieg",
-    "github": "github.com/andrewaws26",
 }
 
 # ATSes whose forms this system can fill and submit without a human step.
@@ -167,10 +165,8 @@ def classify_ats(job: Job) -> str:
 
 def _rail_block(job: Job) -> str | None:
     """Return a rail-violation reason if this job must not be applied to, else None."""
-    slug = job.company_slug
-    for co in RAILS.excluded_companies:
-        if co.replace(" ", "") in slug:
-            return f"excluded company / active track: {co}"
+    if (co := excluded_company_match(job)) is not None:
+        return f"excluded company / active track: {co}"
     blob = f"{job.title} {job.company} {job.location}".lower()
     for dom in RAILS.excluded_domains:
         if re.search(rf"\b{re.escape(dom)}\b", blob):
@@ -181,23 +177,25 @@ def _rail_block(job: Job) -> str | None:
 def _identity_fields(include_credentials: bool) -> dict[str, str]:
     """Assemble the identity/contact fields, pulling PII + creds from the env.
 
-    Name is the one non-secret constant. Email/phone/address and the portal
-    username/password come from ``JOBSEARCH_*`` env vars when present; if they are
-    unset the field is simply omitted (the agent fills it from local memory), which
-    is why nothing sensitive lives in this file.
+    Every identity field, the name included, comes from ``JOBSEARCH_*`` env vars
+    when present; an unset one is simply omitted (the agent fills it from local
+    memory). That is what keeps this public file free of anyone's PII.
     """
     import os
 
-    fields = {"name": "Andrew Sieg"}
+    fields: dict[str, str] = {}
     for key, env in (
+        ("name", "JOBSEARCH_APPLY_NAME"),
         ("email", "JOBSEARCH_APPLY_EMAIL"),
         ("phone", "JOBSEARCH_APPLY_PHONE"),
         ("location", "JOBSEARCH_APPLY_LOCATION"),
+        ("website_portfolio", "JOBSEARCH_APPLY_WEBSITE"),
+        ("linkedin", "JOBSEARCH_APPLY_LINKEDIN"),
+        ("github", "JOBSEARCH_APPLY_GITHUB"),
     ):
         v = os.environ.get(env)
         if v:
             fields[key] = v
-    fields.update({k: STANDARD_ANSWERS[k] for k in ("website_portfolio", "linkedin", "github")})
     if include_credentials:
         try:
             fields["portal_username"] = get_credential("username")
@@ -240,8 +238,7 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
         action=action,
         resume_path=resume_path,
         fields=_identity_fields(include_credentials),
-        screening_answers={k: v for k, v in STANDARD_ANSWERS.items()
-                           if k not in ("website_portfolio", "linkedin", "github")},
+        screening_answers=dict(STANDARD_ANSWERS),
         human_step=human,
     )
     # Attach the accreted per-ATS tactics plus the cross-ATS ones (the system's
