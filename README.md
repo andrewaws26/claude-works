@@ -58,6 +58,8 @@ The [examples README](./examples/README.md) walks through the rest: the offline 
 
 ## Architecture
 
+![System architecture: the agent calls typed MCP tools; policy.json and the rails feed discovery, curation, the 4-gate resume pipeline, and the fill-and-park submission planner; durable state lives in the ledger and queue; the Playwright and JobDataLake MCPs are companions](https://raw.githubusercontent.com/andrewaws26/claude-works/main/docs/architecture.png)
+
 The system is a five-stage pipeline. Each stage is a frozen or plain `@dataclass` defined in `models.py`, and each crosses the MCP boundary as a JSON-serializable dict:
 
 ```
