@@ -1,4 +1,4 @@
-# Search Angles — sample lenses for the demo data set
+# Search Angles - sample lenses for the demo data set
 
 Each angle is a reusable search lens: a trigger (what the operator might say), a
 definition, and the titles to target. The parser in `discovery.py` reads the
