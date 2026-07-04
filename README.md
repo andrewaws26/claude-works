@@ -58,7 +58,7 @@ The [examples README](./examples/README.md) walks through the rest: the offline 
 
 ## Architecture
 
-![The application loop: 1 sweep the public ATS posting APIs, 2 score fresh jobs 0-10 under the policy.json rails and hard caps, 3 triage the queue (fit-rank or park), 4 take the best match, 5 build a resume from verified claims through 4 fail-closed gates, 6 execute the fill-and-park submit plan (Playwright drives the browser; IMAP handles email codes, never captchas), 7 record to the append-only ledger. The agent only makes typed tool calls; JobDataLake is the optional wide net.](https://raw.githubusercontent.com/andrewaws26/claude-works/main/docs/architecture.png)
+![The application loop: 1 sweep the public ATS posting APIs, 2 score fresh jobs 0-10 under the policy.json rails and hard caps, 3 triage the queue (fit-rank or park), 4 take the best match, 5 build a resume from verified claims through 4 fail-closed gates, 6 execute the fill-and-park submit plan (Playwright drives the browser; IMAP handles email codes, never captchas), 7 record to the append-only ledger. The agent only makes typed tool calls; JobDataLake is the optional wide net.](https://raw.githubusercontent.com/andrewaws26/claude-works/main/docs/architecture.png?v=2)
 
 The system is a five-stage pipeline. Each stage is a frozen or plain `@dataclass` defined in `models.py`, and each crosses the MCP boundary as a JSON-serializable dict:
 
