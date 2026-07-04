@@ -1,0 +1,33 @@
+{
+ "generated": "sample data for demo mode; every company here is fictional",
+ "applicant": "Jordan Example",
+ "applications": [
+  {
+   "company": "Promptline",
+   "role": "Developer Advocate, Agent Tooling",
+   "status": "submitted-verified",
+   "ats": "Ashby",
+   "date": "2026-06-30",
+   "apply_url": "https://jobs.ashbyhq.com/promptline/abcdefab-cdef-abcd-efab-cdefabcdefab",
+   "note": "Auto-submitted; confirmation page verified."
+  },
+  {
+   "company": "Fleetly",
+   "role": "Implementation Engineer",
+   "status": "deferred-captcha",
+   "ats": "Lever",
+   "date": "2026-06-28",
+   "apply_url": "https://jobs.lever.co/fleetly/12312312-4545-6767-8989-010101010101",
+   "note": "Filled and parked at the hCaptcha; resume staged."
+  },
+  {
+   "company": "Widget Intelligence",
+   "role": "Platform Engineer",
+   "status": "submitted",
+   "ats": "Greenhouse",
+   "date": "2026-06-25",
+   "apply_url": "https://boards.greenhouse.io/widgetintelligence/jobs/7009000",
+   "note": "The ledger can hold a different role at the same company; the record-level de-dup is by role."
+  }
+ ]
+}

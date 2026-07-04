@@ -19,3 +19,8 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+
+# Demo-mode generated artifacts (build_resume / render_resume / ledger locks)
+examples/resumes/*.html
+examples/resumes/*.pdf
+examples/*.lock
