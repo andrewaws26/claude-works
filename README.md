@@ -1,5 +1,7 @@
 # Claude Works
 
+[![CI](https://github.com/andrewaws26/claude-works/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewaws26/claude-works/actions/workflows/ci.yml)
+
 An MCP server that turns a perpetual, fit-first job-application pipeline into typed, honest tools an LLM agent can call.
 
 ## What it is
@@ -9,6 +11,50 @@ Claude Works is a [Model Context Protocol](https://modelcontextprotocol.io) serv
 The point is not to wrap a chatbot around a job board. The point is to put the policy where it cannot drift: in code. An agent calling these tools cannot quietly inflate a fit score, claim a resume passed gates it never ran, or report a submission that did not happen. The honesty lives in the modules, not in a system prompt that the next conversation might forget.
 
 The core (everything except the FastMCP wiring) imports with the standard library only. That keeps the domain logic fast to test, easy to read, and reusable outside the MCP runtime.
+
+## Try it in two minutes
+
+The repo ships a [demo mode](./examples/README.md): sanitized sample data for a fictional persona, shaped exactly like the private production files, so every tool works from a fresh clone with zero network access.
+
+```bash
+git clone https://github.com/andrewaws26/claude-works.git
+cd claude-works
+pip install -e .
+
+claude mcp add claude-works \
+  -e JOBSEARCH_DATA_DIR="$PWD/examples" \
+  -e JOBSEARCH_RESUMES_DIR="$PWD/examples/resumes" \
+  -- python -m claude_works
+```
+
+Then ask Claude to score a role. This is what "honesty in the modules" looks like on the wire; the agent cannot argue with it:
+
+```jsonc
+// score_job(title="Principal Engineer, ML Infrastructure", company="Massive Scale Co", ...)
+{
+  "value": 5.0,
+  "pursue": false,
+  "reasons": ["hard cap: over-level title ('principal')"],
+  "hard_cap": "over-level title ('principal')"
+}
+
+// score_job(title="Forward Deployed Engineer", ..., jd_text="...agentic workflows on
+//           Claude with MCP tools, own evals, ... first technical hire.")
+{
+  "value": 8.5,
+  "pursue": true,
+  "reasons": [
+    "core-stack overlap: agent, agentic, claude, eval, mcp (+4.0)",
+    "rare-edge match: forward deployed (+1.0)",
+    "level fit: mid / IC / first-hire (+2.0)",
+    "clean channel: Ashby/Greenhouse autonomous-submit (+1.0)",
+    "remote (+0.5)"
+  ],
+  "hard_cap": null
+}
+```
+
+The [examples README](./examples/README.md) walks through the rest: the offline `demo` discovery source, queue curation with auditable park reasons, and the resume gates (try sneaking `"Holds a PhD"` into the demo persona's summary and watch `verify_ok` flip to false).
 
 ## Architecture
 
@@ -45,7 +91,8 @@ Every tool returns JSON-serializable structures so results flow straight back in
 
 | Tool | Contract |
 | --- | --- |
-| `discover_jobs` | Find fresh roles from a discovery source, ranked by fit and de-duped by role. |
+| `discover_jobs` | Find fresh roles from a discovery source, ranked by fit and de-duped by role. Hard-capped roles always rank below clean ones. |
+| `curate_queue` | Triage the discovery queue: keep and fit-rank the genuine fits, park the rest with an auditable reason. Nothing is discarded. |
 | `score_job` | Score one role 0 to 10 against the fit rubric and return the pursue verdict (with any hard cap). |
 | `get_search_angle` | Look up one search lens by name or trigger, or the default lane when the name is empty. |
 | `list_search_angles` | List every defined search lens (name, trigger, definition). |
@@ -67,10 +114,10 @@ cd claude-works
 pip install -e ".[dev]"
 ```
 
-Run the test suite (pure core, no network):
+Run the checks CI runs (no network needed):
 
 ```bash
-pytest
+ruff check . && mypy && pytest
 ```
 
 ## Quickstart
@@ -90,6 +137,7 @@ Register it with Claude Desktop or Claude Code by adding it to your MCP server c
       "command": "python",
       "args": ["-m", "claude_works"],
       "env": {
+        "JOBSEARCH_APPLY_NAME": "Your Name",
         "JOBSEARCH_APPLY_EMAIL": "you@example.com",
         "JOBSEARCH_APPLY_LOCATION": "City, ST",
         "JOBSEARCH_COMP_FLOOR": "120000",
@@ -110,7 +158,8 @@ All configuration is environment driven. Nothing sensitive is stored in the repo
 | `JOBSEARCH_RESUMES_DIR` | Directory holding the resume generator and render pipeline. |
 | `JOBSEARCH_COMP_FLOOR` | Base compensation floor in USD per year. |
 | `JOBSEARCH_PURSUE_THRESHOLD` | The 0 to 10 score at or above which a role is pursued. |
-| `JOBSEARCH_APPLY_EMAIL`, `JOBSEARCH_APPLY_PHONE`, `JOBSEARCH_APPLY_LOCATION` | Contact fields, read at submission time only. |
+| `JOBSEARCH_APPLY_NAME`, `JOBSEARCH_APPLY_EMAIL`, `JOBSEARCH_APPLY_PHONE`, `JOBSEARCH_APPLY_LOCATION` | Identity and contact fields, read at submission time only. No PII of any kind is hard-coded in the repo; an unset field is omitted from the plan. |
+| `JOBSEARCH_APPLY_WEBSITE`, `JOBSEARCH_APPLY_LINKEDIN`, `JOBSEARCH_APPLY_GITHUB` | Profile links for application forms, read the same way. |
 | `JOBSEARCH_APPLY_USERNAME`, `JOBSEARCH_APPLY_PASSWORD` | Portal credentials, read from the environment only and never stored. A missing credential fails loudly instead of silently mis-filling a form. |
 
 ## Design principles
@@ -123,9 +172,11 @@ All configuration is environment driven. Nothing sensitive is stored in the repo
 
 **A self-improving ATS playbook.** `submission.py` carries an `ATS_GOTCHAS` table: hard-won, per-ATS form-handling tactics (Ashby labeled-radio focus-plus-Space, Lever's hidden resume input behind an hCaptcha, Workable masked-date sequential typing, Hirebridge's ASP.NET postback cascade and FormValidation-gated submit, and so on). Every plan carries the relevant tactics so the browsing agent does not relearn them each run. When a better way to fill or submit a form is found, it is appended here and committed, so the knowledge persists across instances the way a person remembers a shortcut.
 
-**Typed dataclass boundaries.** Every value that crosses a tool boundary is one of the five core dataclasses with an explicit `to_dict`. The schema is the contract, and the contract is the same whether a record was written by this server or by the underlying loop.
+**Typed dataclass boundaries.** Every value that crosses a tool boundary is one of the five core dataclasses with an explicit `to_dict`. The schema is the contract, and the contract is the same whether a record was written by this server or by the underlying loop. The package ships a `py.typed` marker, and CI type-checks it with mypy.
 
-**Zero-dependency, testable core.** The domain logic depends on nothing but the standard library. The included tests cover the slug and role-key normalization, the dataclass round-trips, the de-dup-by-role behavior, the scoring hard caps, and the submission planner, all without touching the network.
+**A ledger that survives concurrency.** Parallel loop instances share one `applications.json`. Every append holds an exclusive lock for the whole read-modify-write and lands via an atomic temp-file replace, so concurrent writers cannot drop each other's rows and a crash mid-write cannot corrupt the file. De-dup runs on the (company, role) pair and on the canonical `role_key` parsed from the apply URL, which catches the same role re-entering under a differently spelled company name.
+
+**Zero-dependency, testable core.** The domain logic depends on nothing but the standard library. The tests cover the slug and role-key normalization, the dataclass round-trips, the de-dup-by-role behavior, the scoring hard caps, the curation park reasons, the submission planner, the demo fixtures, and the server's tool registry, all without touching the network. CI runs ruff, mypy, and pytest on Python 3.10 through 3.13.
 
 ## License
 
