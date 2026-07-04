@@ -91,9 +91,11 @@ Every tool returns JSON-serializable structures so results flow straight back in
 
 | Tool | Contract |
 | --- | --- |
-| `discover_jobs` | Find fresh roles from a discovery source, ranked by fit and de-duped by role. Hard-capped roles always rank below clean ones. |
+| `discover_jobs` | Find fresh roles, ranked by fit and de-duped by role. The default `boards` source queries the public Ashby/Greenhouse/Lever posting APIs over your `seed_boards` list and works from a bare install. Hard-capped roles always rank below clean ones. |
+| `fetch_job_description` | Pull a posting's title, location, and plain-text JD from its ATS URL (headless, via the public posting APIs), so `score_job` scores on substance. |
 | `curate_queue` | Triage the discovery queue: keep and fit-rank the genuine fits, park the rest with an auditable reason. Nothing is discarded. |
 | `score_job` | Score one role 0 to 10 against the fit rubric and return the pursue verdict (with any hard cap). |
+| `fetch_verification_code` | Read the newest ATS emailed-verification code from the applicant's own inbox (scoped, read-only IMAP): email-ownership verification, never captchas. |
 | `get_search_angle` | Look up one search lens by name or trigger, or the default lane when the name is empty. |
 | `list_search_angles` | List every defined search lens (name, trigger, definition). |
 | `list_claim_fragments` | List the verified resume building blocks (roles, bullets, projects) that trace to the claims bank. |
@@ -161,6 +163,7 @@ All configuration is environment driven. Nothing sensitive is stored in the repo
 | `JOBSEARCH_APPLY_NAME`, `JOBSEARCH_APPLY_EMAIL`, `JOBSEARCH_APPLY_PHONE`, `JOBSEARCH_APPLY_LOCATION` | Identity and contact fields, read at submission time only. No PII of any kind is hard-coded in the repo; an unset field is omitted from the plan. |
 | `JOBSEARCH_APPLY_WEBSITE`, `JOBSEARCH_APPLY_LINKEDIN`, `JOBSEARCH_APPLY_GITHUB` | Profile links for application forms, read the same way. |
 | `JOBSEARCH_APPLY_USERNAME`, `JOBSEARCH_APPLY_PASSWORD` | Portal credentials, read from the environment only and never stored. A missing credential fails loudly instead of silently mis-filling a form. |
+| `JOBSEARCH_GMAIL_APP_PASSWORD`, `JOBSEARCH_IMAP_HOST` | Optional, for `fetch_verification_code`: a revocable app password (never the account password) and the IMAP host (defaults to Gmail). Missing credentials return a status; those submits simply park. |
 
 ## Running it for your own search
 
@@ -177,13 +180,27 @@ The defaults encode one candidate's policy: his excluded companies (active inter
 
 A policy file that exists but does not parse fails loudly at import; running silently on someone else's exclusion list is exactly the kind of quiet wrongness this codebase refuses.
 
-What you bring yourself:
+**The fastest path: clone the repo, open Claude Code, type `/setup`.** The bundled command interviews you for example jobs you want and your resume, then derives all of the below from those examples (policy, search angles, seed boards, resume fragments), registers the MCP stack, and smoke-tests the pipeline before handing it over.
+
+What the personalization consists of (all derivable by `/setup`, all editable by hand):
 
 - **Identity**: the `JOBSEARCH_APPLY_*` environment variables (name, contact, profile links, portal credentials). Nothing personal is in the repo.
 - **A queue and ledger**: start with empty files; `record_application` creates the ledger on first append.
-- **Search angles**: write your own `SEARCH_ANGLES.md` (the demo one shows the format).
+- **Search angles**: your own `SEARCH_ANGLES.md` (the demo one shows the format).
 - **Resume fragments**: the resume tools drive a claims-bank generator; copy `examples/resumes/_genlib.py` and replace the fragments with claims that are true of you. The gates then hold you to them.
-- **Discovery sources**: the `newsource`/`board_harvest` sources wrap private harvest scripts that are not in this repo. Bring your own source scripts, or feed roles in via `score_job`/`curate_queue` from whatever discovery you already have. The `demo` source works everywhere.
+- **Discovery**: the built-in `boards` source works out of the box over your `seed_boards` orgs. The `newsource`/`board_harvest` sources wrap private harvest scripts not in this repo and fail loudly without them.
+
+## The full agent stack
+
+This package is the policy brain. A complete, working system is three MCP servers plus the playbooks in this repo:
+
+```bash
+claude mcp add claude-works -e JOBSEARCH_DATA_DIR=... -- claude-works   # scoring, curation, plans, gates, ledger
+claude mcp add playwright -- npx @playwright/mcp@latest                 # executes the submission plans in a real browser
+claude mcp add --transport http jobdatalake https://mcp.jobdatalake.com # optional: 1M+ indexed roles, free tier, wide-net discovery
+```
+
+The division of labor: discovery comes from the built-in `boards` source and/or JobDataLake's `search_jobs`; every candidate role goes through `fetch_job_description` and `score_job`; `curate_queue` picks the strongest open fit; `build_resume`/`render_resume`/`verify_resume` produce a gated one-pager; `submit_application` emits the deterministic plan; the agent executes that plan with Playwright following [PLAYBOOK.md](./PLAYBOOK.md) (every hard-won per-ATS lesson, sanitized); the real outcome lands in the ledger via `record_application`. [OPERATING.md](./OPERATING.md) is the loop's operating model: queue-first, honest walls, de-dup semantics, and the standing self-improvement mandate.
 
 ## Design principles
 

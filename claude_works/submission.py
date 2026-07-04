@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday"}
+PARK_ATS = {"lever", "workday", "gem", "icims"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -72,6 +72,9 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "A 404 on the whole board endpoint means the org DISABLED the public posting API, not that the role closed: the live job page can still be open and submittable. The missing-id-means-closed rule only applies when the board returns 200 with a jobs list; before recording a role as closed, fetch the live job page and check its title tag (a live posting renders 'Role @ Company'). When the API is off, the job page HTML embeds descriptionHtml plus locationName/workplaceType keys to screen from.",
         "Some boards run server-side bot detection that rejects a fully-valid headless submit with an alert 'We couldn't submit your application. Your application submission was flagged as possible spam. Please submit your application again.' The form clears and re-submitting from the same automated browser gets flagged again, because it is fingerprinting the automation, not validating the data. Treat it as a robot wall, not a captcha to defeat: do not re-submit in a loop (repeat attempts look like the spam being blocked), park the application with the resume and answers prepared, and have a human submit once from an ordinary browser. This wall shows up across role types, including plain backend engineering postings, so do not assume a non-customer-facing role is exempt; the alert wording varies slightly (for example ending 'If you believe this was a mistake, please submit your application again.').",
         "On newer boards the selected Yes/No state is the class _active_* rather than _act, and an accessibility snapshot may only mark the last group active, so verify each group's selected class by reading the DOM rather than trusting the snapshot.",
+        "Required TEXT inputs also want a real fill: a synthetic native-setter value can be silently dropped by React validation on required fields (a LinkedIn field has silently lost its value this way).",
+        "For a stubborn Yes/No button that resists trusted clicks, an OS-level coordinate click on the element works; never rename radio element ids to force state (it breaks React tracking).",
+        "Success signal is the literal text 'successfully submitted'.",
     ],
     "greenhouse": [
         "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
@@ -87,13 +90,19 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The Location (City) geocode options render as [class*=option] (e.g. 'City, State, Country'), NOT [role=option]; the [role=option] matches are the always-present phone-country listbox, so type the city slowly, wait about 3 seconds for the lookup, then click the option by EXACT text (getByText('City, State, Country', exact)).",
         "On company-branded career pages the whole form is inside an embedded iframe: locate the frame that holds the file inputs / comboboxes and operate within it, not the top page.",
         "A required cover letter with no attached file: click its 'enter manually' toggle to reveal a textarea, then type a genuine tailored letter into the VISIBLE textarea, excluding the hidden g-recaptcha-response textarea.",
+        "A question that LOOKS like a Yes/No dropdown can be a plain text input; check the DOM and fill the word. Conditional questions appear/disappear based on earlier answers, so re-enumerate fields before the final verify.",
+        "The /embed/job_app?for=<org>&token=<jobid> URL reaches the raw form directly when a posting redirects to a marketing-site wrapper; some boards expose file inputs with direct ids (#resume, #cover_letter) where setInputFiles works without clicking.",
+        "Export-control / US-person questions (ITAR/EAR manufacturers) are work-authorization attestations, not clearance requirements: answer with the option that is true of the candidate, never 'None of the above' by default and never a guess.",
+        "Match auth/sponsorship by EXACT label, never fuzzy: a fuzzy match has wrongly selected 'No' for work authorization.",
     ],
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
         "Resume: setInputFiles on the hidden input#resume-upload-input (do not click through the captcha overlay).",
         "Radios: set by clicking the input matched on its label text; the generic fill-form helper malforms non-boolean setChecked values.",
         "Required consent checkbox sits under the hCaptcha widget: once the challenge renders, the captcha iframe subtree intercepts pointer events and a normal click on the checkbox times out. Set it programmatically (checked=true, then dispatch input+change+click) before parking so the form is fully ready for the human.",
-        "Lever auto-parses the uploaded resume and may auto-fill current location and current company from it; leave those unless wrong.",
+        "Lever auto-parses the uploaded resume and may auto-fill current location and current company from it; leave those unless wrong. Upload the resume FIRST so the parser fills the standard fields for you.",
+        "Custom questions live under cards[<uuid>][fieldN] input names, so enumerate by name; EEO is native selects.",
+        "The captcha is risk-based per submission: a submission can land even after a challenge pops (a re-submit returning 'application already received' proves it), so verify with a fresh submit attempt before assuming a blocked application.",
     ],
     "workable": [
         "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
@@ -107,6 +116,17 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     ],
     "workday": [
         "Account wall plus date-spinbuttons; fill what you can, then park for account verification and the date control.",
+        "Account creation is per-tenant (save which tenants have accounts); some tenants skip email verification entirely.",
+        "Resume autofill parses BADLY (it has put a city into the name fields): always re-verify the My Information page after autofill.",
+        "Dropdowns are button[aria-haspopup=listbox] then [role=option]; 'How did you hear' is a two-level menu; it is an 8-step wizard and the Review step is the natural verification checkpoint.",
+    ],
+    "gem": [
+        "hCaptcha shape-puzzle wall: fill everything, then PARK for the human; never attempt the puzzle.",
+        "No field ids or labels: map inputs by their visually preceding label and fill by index; file dropzones need a JS click on the hidden input[type=file].",
+        "Prefer the 'Apply without saving' submit over the account-creating one.",
+    ],
+    "icims": [
+        "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
     ],
 }
 
@@ -116,7 +136,11 @@ GENERAL_GOTCHAS: list[str] = [
     "Phone fields can have a hidden raw value plus a formatted display variant; set both.",
     "EEO self-identify questions are declined; an acknowledgment 'type your full name' field takes the candidate name.",
     "Browser-driver tooling often sandboxes file uploads to an allowed root; stage the resume PDF inside an allowed directory before uploading or setInputFiles errors with 'outside allowed roots'.",
-    "An emailed verification code is an email-ownership check (the applicant owns the inbox and authorizes the agent), distinct from a captcha: it can be completed by reading the code from the applicant's own inbox via a scoped, read-only IMAP reader authenticated with a revocable app password, then entering it. A captcha, an 'are you a robot' check, or a 'no AI was used' attestation is NOT this and is never bypassed: those are filled-and-parked for the human.",
+    "An emailed verification code is an email-ownership check (the applicant owns the inbox and authorizes the agent), distinct from a captcha: it can be completed by reading the code from the applicant's own inbox via a scoped, read-only IMAP reader authenticated with a revocable app password, then entering it (the fetch_verification_code tool). A captcha, an 'are you a robot' check, or a 'no AI was used' attestation is NOT this and is never bypassed: those are filled-and-parked for the human.",
+    "Coordinates trap: the browser viewport width differs from the screenshot render width (~1.26x); never click at screenshot pixel coordinates, use locators or an element screenshot (1:1).",
+    "Tab fragility: the driven browser can reset tabs between operations; never park a filled-but-unsubmitted form in a background tab, finish or record state promptly.",
+    "Verify success by URL or page text (/thanks, ?success, /confirmation, 'Application Submitted'), never by the submit click returning.",
+    "After filling, hunt for any aria-invalid=true field; that one field (usually a date or autocomplete) is the silent submit-blocker.",
 ]
 
 
@@ -160,6 +184,10 @@ def classify_ats(job: Job) -> str:
         return "workable"
     if "hirebridge.com" in u:
         return "hirebridge"
+    if "jobs.gem.com" in u or "gem.com" in u:
+        return "gem"
+    if "icims.com" in u:
+        return "icims"
     return job.ats.lower() or "unknown"
 
 
@@ -226,8 +254,11 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
         action, human = "auto_submit", None
     elif ats in PARK_ATS:
         action = "fill_and_park"
-        human = ("captcha / hCaptcha (Lever)" if ats == "lever"
-                 else "Workday date-spinbutton or account verification")
+        human = {
+            "lever": "captcha / hCaptcha (Lever)",
+            "gem": "hCaptcha shape puzzle (Gem)",
+            "icims": "account creation / email verification (iCIMS)",
+        }.get(ats, "Workday date-spinbutton or account verification")
     else:
         action = "fill_and_park"
         human = "unknown ATS: fill everything fillable, park at any captcha/account wall"

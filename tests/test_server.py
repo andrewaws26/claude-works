@@ -6,6 +6,8 @@ import asyncio
 
 EXPECTED_TOOLS = {
     "discover_jobs",
+    "fetch_job_description",
+    "fetch_verification_code",
     "curate_queue",
     "score_job",
     "get_search_angle",

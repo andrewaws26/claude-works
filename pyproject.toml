@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-works"
-version = "0.2.0"
+version = "0.3.0"
 description = "An MCP server exposing a fit-first, honesty-enforced job-application pipeline as typed tools for LLM agents."
 readme = "README.md"
 requires-python = ">=3.10"

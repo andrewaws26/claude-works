@@ -5,6 +5,21 @@ pipeline as typed tools. The honesty policy lives in the modules, not in
 prompts: hard caps in scoring, gate findings in the resume tools, fill-and-park
 plans in submission. Do not move policy into docstrings or prompt text.
 
+Companion docs, read before the matching work: **PLAYBOOK.md** (every per-ATS
+form-driving lesson; read it before executing a submission plan with
+Playwright), **OPERATING.md** (the loop's operating model: queue-first gate,
+hard walls, de-dup semantics, cadence). To onboard a new candidate end to end,
+run the bundled **/setup** command.
+
+## Standing rule: append lessons in the same session
+
+When you discover a better way to fill or submit a form (a new ATS, a
+selector, a validator trick, a submit-blocker), append it to PLAYBOOK.md AND,
+in terse generic form, to `submission.py`'s `ATS_GOTCHAS` (tests green, no
+PII, no em dashes) before the session ends. When a skip reveals a pattern, add
+it to `curation.py`'s filters. This is how the system remembers; do not wait
+to be asked.
+
 ## Commands
 
 ```bash
@@ -23,7 +38,9 @@ python -m claude_works
 
 ## Setting it up for a user
 
-When asked to install or configure this for someone:
+Prefer the bundled `/setup` command: it interviews the user for example jobs +
+their resume and derives everything below from those examples. The manual
+outline:
 
 1. `pip install claude-works` (PyPI) or `pip install -e .` from a clone.
 2. Create a data directory for their search (ledger, queue, and policy live
@@ -51,9 +68,10 @@ When asked to install or configure this for someone:
 6. Smoke-test: `score_job` on an over-level title (expect a hard cap),
    `curate_queue`, `submit_application` (expect a plan, not a submission).
 
-What does not transfer: the `newsource`/`board_harvest` discovery sources wrap
-private scripts. Users bring their own sources or feed roles to
-`score_job`/`curate_queue` directly. The `demo` source always works.
+Discovery that works out of the box: the default `boards` source (public
+Ashby/Greenhouse/Lever posting APIs over the user's `seed_boards`), the
+JobDataLake MCP for the wide net, and the offline `demo` source. Only the
+`newsource`/`board_harvest` sources wrap private scripts that do not ship.
 
 ## Architecture
 

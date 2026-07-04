@@ -20,6 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from . import boards
 from .config import PATHS, RAILS, policy_tuple
 from .models import Job, Score, SearchAngle
 
@@ -276,32 +277,37 @@ _DEMO_JOBS: tuple[dict[str, Any], ...] = (
 
 def available_sources() -> list[str]:
     """Names accepted by ``discover_jobs``'s ``source`` argument."""
-    return sorted(_SOURCES) + ["board_harvest", "demo"]
+    return ["boards"] + sorted(_SOURCES) + ["board_harvest", "demo"]
 
 
 def discover_jobs(
     angle: str | None = None,
-    source: str = "newsource",
+    source: str = "boards",
     limit: int = 25,
     network_ok: bool = True,
 ) -> list[Job]:
     """Find roles from a discovery source, normalized to ``Job`` and ranked by fit.
 
-    ``source`` selects which live sweep to run: ``newsource`` (Getro VC networks +
-    Anthropic-customer ATS boards, the highest-yield combo), ``getro``,
-    ``anthropic``, ``board_harvest`` (the curated Ashby/Greenhouse seed miner), or
-    ``demo`` (canned fictional roles, no network, works from a fresh clone).
-    ``angle`` biases ranking toward a lane from ``SEARCH_ANGLES.md``. Set
-    ``network_ok=False`` to return an empty list without making any HTTP calls
-    (used by tests; the offline ``demo`` source still returns its canned roles).
-    Results are de-duped by role within the call and ranked by the fit score; the
-    ledger de-dup is applied separately by the tracker.
+    ``source`` selects which sweep to run. ``boards`` (the default) queries the
+    public Ashby/Greenhouse/Lever posting APIs over the ``seed_boards`` org list
+    from ``policy.json`` and works from a bare install. ``demo`` returns canned
+    fictional roles with no network. The remaining sources (``newsource``,
+    ``getro``, ``anthropic``, ``board_harvest``) wrap private harvest scripts in
+    the data dir and fail loudly when those are absent. ``angle`` biases ranking
+    toward a lane from ``SEARCH_ANGLES.md``. Set ``network_ok=False`` to return
+    an empty list without making any HTTP calls (used by tests; the offline
+    ``demo`` source still returns its canned roles). Results are de-duped by
+    role within the call and ranked by the fit score; the ledger de-dup is
+    applied separately by the tracker.
     """
     src = source.lower().strip()
     if src == "demo":
         return _rank([Job.from_dict(dict(r)) for r in _DEMO_JOBS], angle, limit)
     if not network_ok:
         return []
+    if src == "boards":
+        jobs, _skipped = boards.boards_sweep()
+        return _rank(jobs, angle, limit)
     if src == "board_harvest":
         return _discover_board_harvest(angle, limit)
     if src not in _SOURCES:

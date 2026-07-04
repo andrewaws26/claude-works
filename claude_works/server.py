@@ -23,7 +23,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from . import curation, discovery, submission, tracker
+from . import boards, curation, discovery, submission, tracker, verification
 from . import resume as resume_mod
 from .models import Application, Job
 
@@ -35,22 +35,56 @@ mcp = FastMCP("claude-works")
 # --------------------------------------------------------------------------- #
 
 @mcp.tool()
-def discover_jobs(angle: str = "", source: str = "newsource", limit: int = 25) -> list[dict[str, Any]]:
+def discover_jobs(angle: str = "", source: str = "boards", limit: int = 25) -> list[dict[str, Any]]:
     """Find fresh roles from a discovery source, ranked by fit, de-duped by role.
 
     Args:
         angle: a search lens from SEARCH_ANGLES.md (e.g. "FDE", "IoT")
-            to bias ranking toward that lane. Empty = the default FDE lane.
-        source: which live sweep to run. One of "newsource" (Getro VC networks +
-            Anthropic-customer ATS boards, highest yield), "getro", "anthropic", or
-            "board_harvest" (curated Ashby/Greenhouse seed miner).
+            to bias ranking toward that lane. Empty = the default lane.
+        source: which sweep to run. "boards" (default) queries the public
+            Ashby/Greenhouse/Lever posting APIs over the seed_boards org list in
+            policy.json and works from a bare install. "demo" returns canned
+            fictional roles offline. "newsource"/"getro"/"anthropic"/
+            "board_harvest" wrap private harvest scripts in the data dir and
+            fail loudly when absent. For a much wider net, pair this with the
+            JobDataLake MCP (search_jobs) and feed its results to score_job.
         limit: max roles to return.
 
     Returns a list of job dicts (title, company, url, source, location, remote,
-    ats, role_key). Network calls are made by the underlying repo scripts.
+    ats, role_key). Roles the rails hard-cap always rank below clean ones.
     """
     jobs = discovery.discover_jobs(angle=angle or None, source=source, limit=limit, network_ok=True)
     return [j.to_dict() for j in tracker.dedupe_jobs(jobs)]
+
+
+@mcp.tool()
+def fetch_job_description(url: str) -> dict[str, Any]:
+    """Fetch a posting's title, location, and plain-text JD from its ATS URL.
+
+    Supports Ashby, Greenhouse, and Lever job URLs via their public posting
+    APIs (the same ones the boards sweep uses). Use the returned text as
+    score_job's jd_text: titles under- and over-sell, so scoring on the JD is
+    sharper, and the body is the only reliable place to catch in-office
+    requirements hiding behind a remote flag. Returns {error} when the URL is
+    unrecognized or the org disabled its public API (a board 404 does NOT mean
+    the role closed; check the live page before recording it closed)."""
+    return boards.fetch_job_description(url)
+
+
+@mcp.tool()
+def fetch_verification_code(minutes: int = 15) -> dict[str, Any]:
+    """Read the newest ATS email-verification code from the applicant's own inbox.
+
+    For the emailed-code gate some ATSes put in front of the final submit: this
+    is email-OWNERSHIP verification of the applicant's own application, which
+    the applicant has authorized, NOT a captcha. Scoped and read-only: only
+    recent mail from known ATS sender domains is considered, via IMAP BODY.PEEK
+    with a revocable app password from the environment. Returns {status, code?}.
+    NO_CODE_FOUND right after submit usually means the mail is in transit; wait
+    ~8s and retry (up to 3x) before parking. Never use this reasoning for
+    captchas or no-AI attestations: those always park for the human.
+    """
+    return verification.fetch_verification_code(minutes=minutes)
 
 
 @mcp.tool()

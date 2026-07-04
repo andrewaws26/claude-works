@@ -13,6 +13,12 @@
   "edge_signals": ["fintech", "payments", "compliance", "risk", "sql", "etl"],
   "level_ok_signals": ["mid", "ic", "2-5", "2 to 5"],
 
+  "seed_boards": {
+    "ashby": ["openai", "ramp", "linear", "replit", "cursor"],
+    "greenhouse": ["anthropic", "stripe", "databricks", "figma"],
+    "lever": ["mistral", "zoox", "octoenergy"]
+  },
+
   "lane_points": {
     "applied ai": 6,
     "ai engineer": 5,
