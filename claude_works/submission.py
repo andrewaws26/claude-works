@@ -77,6 +77,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Success signal is the literal text 'successfully submitted'.",
     ],
     "greenhouse": [
+        "The boards API (boards-api.greenhouse.io/v1/boards/<org>/jobs/<id>) is a free liveness oracle: closed or removed postings return a 404 JSON body while open ones return the full JD, so bulk-check aging queue batches there before spending browser sessions; sweep-sourced queues can go majority-stale within weeks.",
         "Greenhouse EEO numeric ids need [id=\"1101\"] attribute selectors; match auth/sponsorship by exact label.",
         "Auto-submittable: upload the resume file input, then the standard fields, then submit.",
         "Screening + EEO dropdowns are React-Select comboboxes: get the combobox by name, click it, type the option, press Enter (type-and-Enter filters then selects).",
