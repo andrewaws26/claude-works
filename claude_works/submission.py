@@ -62,6 +62,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "ashby": [
         "Ashby labeled-radio gotcha: use locator.focus() then keyboard.press('Space').",
         "Resume is the LAST input[type=file] (id _systemfield_resume); the first file input is autofill-from-resume.",
+        "Uploading the resume can trigger an autofill-parse re-render that WIPES already-typed text fields (Name/Email/free-text answers), so upload the resume FIRST, fill text fields after, and re-verify every input value right before submit; a 'Missing entry for required field' error on a field you filled means the parse wiped it.",
         "Location is a typeahead: type the city, then click the [role=option] matching 'City, State, Country'.",
         "Yes/No questions render as <button> with an _act class when selected; clicking an already-selected one TOGGLES IT OFF, so check state instead of re-clicking.",
         "Set those Yes/No buttons with a REAL pointer click, never a scripted element.click(): a scripted click sets the _act visual but not the React form value, so the field reads as a missing required field on submit; recover a mismatched one by clicking the opposite answer then the intended one.",
@@ -95,6 +96,9 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The /embed/job_app?for=<org>&token=<jobid> URL reaches the raw form directly when a posting redirects to a marketing-site wrapper; some boards expose file inputs with direct ids (#resume, #cover_letter) where setInputFiles works without clicking.",
         "Export-control / US-person questions (ITAR/EAR manufacturers) are work-authorization attestations, not clearance requirements: answer with the option that is true of the candidate, never 'None of the above' by default and never a guess.",
         "Match auth/sponsorship by EXACT label, never fuzzy: a fuzzy match has wrongly selected 'No' for work authorization.",
+        "The NEW remix-style embed (remix-css classes; the form's FormData serializes EMPTY because all state is React-side) will NOT commit a React-Select from fill()+Enter: use real keystrokes (click, type character-by-character, wait, Enter), and read the aria-live [role=log] beside each select ('<option>, N of M' / '<option> selected') to verify focus and commit.",
+        "CRITICAL remix-embed trap: if a submit fails while any react-select is empty, that field is flagged invalid and every later value you commit to it (clicks, keyboard, synthetic events - all of them, even when the selected text visibly renders) REVERTS on each subsequent submit. The field cannot be repaired in place: reload the job page, refill the ENTIRE form in one clean pass (formerly-flagged selects first), and submit exactly once. Corollary: fill everything, especially phone Country, BEFORE the first submit attempt.",
+        "Remix-embed option text differs from classic boards (gender options are 'Man'/'Woman', not 'Male'; source options like 'LinkedIn Jobs'), and the cover letter can be FILE-ONLY: the 'enter manually' control may be a button that never reveals a textarea, so write the note to a .txt and setInputFiles it into the cover-letter file input.",
     ],
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
