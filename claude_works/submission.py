@@ -143,6 +143,15 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "icims": [
         "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
     ],
+    "breezy": [
+        "Fully headless-submittable: no captcha, no robot wall, no account. The apply form lives at the posting URL plus /apply; success is a redirect to /apply/submitted with an 'Application Submitted' heading.",
+        "Resume-parse autofill: click the Upload Resume link (a real file chooser opens; answer it with the file path), wait several seconds, and the parse fills Work History, Education, and the experience summary from the PDF, but NOT the personal details (name/email/phone/address), so fill those yourself after.",
+        "The parse garbles fields, so verify and fix before submit: it can put a parenthetical into the Company input (losing the real employer name), rewrite ampersands as 'AND' in titles, and split PDF ligatures in summaries ('traffi c', 'verifi able'). Inputs take a real fill; textarea summaries accept a programmatic value set plus a dispatched input event (the form is AngularJS).",
+        "Date inputs inside work-history rows share the same placeholder as the Company field, so a verify-by-placeholder pass will show dates under 'Company'; expect it.",
+        "HONEYPOT: a hidden unlabeled text input (name like hp_XXXX) sits before the submit button; leave it empty, filling it flags the submission as a bot.",
+        "An optional SMS-consent checkbox under the phone field is not required for submit; leave it unchecked unless consent is intended.",
+        "Work History and Education are required sections but the resume parse satisfies them; education dates may stay empty. The cover-letter textarea is name=cCoverLetter.",
+    ],
     "rippling": [
         "No account needed: Apply opens a single-page form; resume-parse autofill is excellent, so upload the resume FIRST and it fills name/email/phone/location/link/company, leaving only the dropdowns.",
         "Dropdowns (visa question, EEO fields) are custom comboboxes: click the combobox, options render inside a dialog listbox, click the option by text; values verify via the combobox display text and its search input value, and the Apply button enables only when required fields are set.",
@@ -212,6 +221,8 @@ def classify_ats(job: Job) -> str:
         return "icims"
     if "ats.rippling.com" in u:
         return "rippling"
+    if "breezy.hr" in u:
+        return "breezy"
     return job.ats.lower() or "unknown"
 
 
