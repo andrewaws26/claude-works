@@ -65,7 +65,12 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
 ))
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
-EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "intern", "apprentice")
+EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "apprentice")
+
+# "intern"/"internship" need a word-boundary match: a plain substring check
+# false-positives on "Internal" (e.g. an "Internal Tools Engineer" or "Internal
+# Agents" title), which would wrongly park a legitimate IC role.
+EXTRA_LEVEL_WORD = re.compile(r"\bintern(?:ship)?\b")
 
 # Advanced-degree knockout: "Scientist" titles (Research/Applied/ML/Data Scientist)
 # and JDs that require a PhD or Master's are a hard credential gap for a candidate
@@ -173,7 +178,11 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "excluded-company"
     if any(dom in blob for dom in RAILS.excluded_domains):
         return "excluded-domain"
-    if any(t in title for t in RAILS.overlevel_terms) or any(t in title for t in EXTRA_LEVEL):
+    if (
+        any(t in title for t in RAILS.overlevel_terms)
+        or any(t in title for t in EXTRA_LEVEL)
+        or EXTRA_LEVEL_WORD.search(title)
+    ):
         return "over-level"
     if "scientist" in title or any(d in blob for d in ADVANCED_DEGREE):
         return "advanced-degree"

@@ -42,6 +42,15 @@ def test_over_level_title_is_parked():
         assert res.parked and res.parked[0][1] == "over-level", title
 
 
+def test_intern_title_is_parked_but_internal_is_not():
+    res = curation.curate([_job("Software Engineering Intern")])
+    assert res.parked and res.parked[0][1] == "over-level"
+
+    res = curation.curate([_job("AI Engineer, Internal Agents & Workflow Automation")])
+    assert res.parked == []
+    assert res.active
+
+
 def test_excluded_domain_is_parked():
     res = curation.curate([_job("AI Engineer", company="Acme Defense Systems")])
     assert res.parked and res.parked[0][1] == "excluded-domain"
