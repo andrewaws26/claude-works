@@ -117,7 +117,13 @@ US_SIGNALS: tuple[str, ...] = (
 # Channel bonus: bias the active ranking toward ATSes that auto-submit cleanly, so
 # more fires land as confirmed rather than parked. Ashby has no anti-bot gate; Greenhouse
 # often email-gates an automated submit; Lever is captcha-walled; Custom varies.
-CHANNEL_BONUS: dict[str, int] = {"ashby": 2, "workable": 1, "greenhouse": 1, "lever": 0}
+# Zero-interaction preference: captcha walls (lever/gem) and account walls
+# (workday/icims and kin) always end as human handoffs, so they carry negative
+# bonuses - queue them only when the underlying fit is exceptional.
+CHANNEL_BONUS: dict[str, int] = {
+    "ashby": 2, "workable": 2, "greenhouse": 2,
+    "lever": -2, "gem": -2, "workday": -3, "icims": -3,
+}
 
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
