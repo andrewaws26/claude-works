@@ -76,6 +76,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Required TEXT inputs also want a real fill: a synthetic native-setter value can be silently dropped by React validation on required fields (a LinkedIn field has silently lost its value this way).",
         "For a stubborn Yes/No button that resists trusted clicks, an OS-level coordinate click on the element works; never rename radio element ids to force state (it breaks React tracking).",
         "Success signal is the literal text 'successfully submitted'.",
+        "Some boards enforce per-org application limits and say so in a banner on the form (for example: at most N applications per 90 days across all jobs, and no re-apply to the same role within a year without an offer). When policy allows repeat applications to different roles at the same company, count that org's recent submissions before applying and skip if at the cap.",
+        "Not every board uses the Yes/No <button> pattern: some render real input[type=radio] elements, where a normal pointer click works and checked state verifies via input[type=radio]:checked. When verifying filled text fields via the DOM, remember phone is type=tel and email is type=email, so an input[type=text] query misses them; query those types explicitly.",
     ],
     "greenhouse": [
         "The boards API (boards-api.greenhouse.io/v1/boards/<org>/jobs/<id>) is a free liveness oracle: closed or removed postings return a 404 JSON body while open ones return the full JD, so bulk-check aging queue batches there before spending browser sessions; sweep-sourced queues can go majority-stale within weeks.",
