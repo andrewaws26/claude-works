@@ -112,7 +112,10 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "workable": [
         "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
         "Masked DATE inputs (MM/DD/YYYY) need sequential typing (pressSequentially), not a single fill().",
-        "Address requires SELECTING a structured autocomplete suggestion; free text fails validation.",
+        "Address requires SELECTING a structured autocomplete suggestion; free text fails validation. Some orgs render a plain free-text address instead: if no suggestion listbox appears after slow typing, free text is accepted, so do not wait on one.",
+        "Some orgs gate the submit POST behind invisible Cloudflare Turnstile: the button sticks on Submitting..., the application POST never fires, and the Turnstile pat request 401s. It will not pass headlessly and a reload retry hits the same wall; it is a robot check, so fill-and-park. Detect early by checking the network log for challenges.cloudflare.com/turnstile.",
+        "The whole form (fields, radios, uploaded-resume ref) persists in localStorage per browser profile, so a reload restores everything (accept the beforeunload dialog). When parking, export the long-form answers to a file; the human's own browser starts empty.",
+        "Question textareas can carry a tiny maxlength and fill() silently truncates mid-word at the cap; re-read value.length after filling and rewrite a complete answer that fits.",
     ],
     "hirebridge": [
         "Account email-gate first: enter the email, then RE-TYPE it to confirm (not an emailed code); proceeds to QuickApply.",
