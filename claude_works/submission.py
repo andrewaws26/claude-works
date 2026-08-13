@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -143,6 +143,13 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "icims": [
         "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
     ],
+    "rippling": [
+        "No account needed: Apply opens a single-page form; resume-parse autofill is excellent, so upload the resume FIRST and it fills name/email/phone/location/link/company, leaving only the dropdowns.",
+        "Dropdowns (visa question, EEO fields) are custom comboboxes: click the combobox, options render inside a dialog listbox, click the option by text; values verify via the combobox display text and its search input value, and the Apply button enables only when required fields are set.",
+        "The submit POST is gated behind invisible Cloudflare Turnstile: clicking Apply disables every field, the Turnstile pat request 401s headlessly, and the application POST never appears in the network log (the page can even blank out after a while). Same wall signature as the Workable variant: it is a robot check, never bypassed, so fill-and-park after ONE clean network-log-confirmed attempt, and do not hammer retries.",
+        "The form does not persist for the human's own browser, so a park must list every answer; the parse autofill makes the manual redo about two minutes.",
+        "Element references go stale after option clicks and can silently re-resolve to a different element whose click times out on 'subtree intercepts pointer events'; re-snapshot scoped to the submit button's test id for a fresh reference before clicking.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -203,6 +210,8 @@ def classify_ats(job: Job) -> str:
         return "gem"
     if "icims.com" in u:
         return "icims"
+    if "ats.rippling.com" in u:
+        return "rippling"
     return job.ats.lower() or "unknown"
 
 
