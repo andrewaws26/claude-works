@@ -211,6 +211,12 @@ def fit_score(job: Job) -> int:
     for kw, pts in LANE_POINTS.items():
         if kw in title:
             score = max(score, pts)
+    # QA and test titles are floor lanes: "QA Automation Engineer" substring
+    # matches "automation engineer" and "QA ... AI Agents" matches "agent",
+    # which would rank a floor QA role above builder lanes. Cap the lane
+    # component so builder lanes always outrank QA in best-first ordering.
+    if re.search(r"\bqa\b|quality assurance|test engineer", title):
+        score = min(score, 3)
     if job.remote or "remote" in blob:
         score += 2
     if "python" in blob:
