@@ -61,7 +61,7 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "research scientist", "researcher", "data scientist", "hardware engineer",
     "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
-    "technician",
+    "technician", "strategic client", "strategic account",
 ))
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
