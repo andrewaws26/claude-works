@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -186,6 +186,11 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "A public candidate-apply API exists for this platform, but using it to route around the explicit device-verification block is a bypass and stays out of bounds; the human applies through their own browser.",
         "Queue-scoring implication: postings from this platform often arrive labeled as a generic custom ATS because the job lives on a branded careers URL; classify by the smartrecruiters.com apply link and score it as a wall-class channel so it only tops the queue on an exceptional fit.",
     ],
+    "jazzhr": [
+        "The apply page (<org>.applytojob.com/apply/<id>/<slug>) server-renders the full job description in the initial HTML, so a plain HTTP fetch screens the JD body fine. But a country-scoped posting also renders a separate structured Location field (for example, just a country name) AFTER the qualifications/benefits text, plus the application form itself carries country-specific required screening questions (work eligibility and sponsorship phrased for that country) and salary in that country's currency. None of that shows up in a queue row built only from the opening JD paragraphs, so read the FULL page, specifically past the qualifications section, before treating a role as US-remote.",
+        "The submit button sits behind a visible Google reCAPTCHA v2 checkbox ('I'm not a robot'). Treat it like any other captcha: never auto-solve it, fill-and-park for the human.",
+        "Standard fields: first/last name, email, phone, address (city/state/postal), resume (attach or paste), LinkedIn URL, a typed-full-legal-name e-signature textbox, and several Yes/No screening questions rendered as free-text boxes rather than radio buttons or dropdowns.",
+    ],
     "rippling": [
         "No account needed: Apply opens a single-page form; resume-parse autofill is excellent, so upload the resume FIRST and it fills name/email/phone/location/link/company, leaving only the dropdowns.",
         "Dropdowns (visa question, EEO fields) are custom comboboxes: click the combobox, options render inside a dialog listbox, click the option by text; values verify via the combobox display text and its search input value, and the Apply button enables only when required fields are set.",
@@ -259,6 +264,8 @@ def classify_ats(job: Job) -> str:
         return "breezy"
     if "smartrecruiters.com" in u:
         return "smartrecruiters"
+    if "applytojob.com" in u:
+        return "jazzhr"
     return job.ats.lower() or "unknown"
 
 

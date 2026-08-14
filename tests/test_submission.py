@@ -64,6 +64,14 @@ def test_classify_workable_and_hirebridge():
     assert submission.classify_ats(Job("X", "Acme", "https://recruit.hirebridge.com/v3/Jobs/JobDetails.aspx?jid=1")) == "hirebridge"
 
 
+def test_classify_jazzhr_and_parks_at_recaptcha():
+    job = Job("AI Engineer", "Acme", "https://acme.applytojob.com/apply/abc123/AI-Engineer")
+    assert submission.classify_ats(job) == "jazzhr"
+    plan = submission.plan_submission(job)
+    assert plan.action == "fill_and_park"
+    assert plan.human_step is not None
+
+
 def test_workable_auto_submits_with_date_and_address_gotchas():
     plan = submission.plan_submission(
         Job("AI Engineer", "Acme", "https://apply.workable.com/acme/j/ABC123/")
