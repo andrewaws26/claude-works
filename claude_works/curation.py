@@ -98,6 +98,20 @@ LEAD_BODY: tuple[str, ...] = (
     "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
 )
 
+# Pre-sales "Solutions/Sales Engineer" roles dressed as builder titles: the lane
+# table gives "solutions engineer" high points on title alone, but a real chunk
+# of postings under that title are pure pre-sales (POV/RFP/deal-closing, reporting
+# into a Sales department) with zero hands-on building. Only fires when the title
+# already looks like solutions/sales engineering AND the body also carries an
+# explicit deal-cycle marker, so a genuine builder role that happens to mention
+# "customer" isn't caught. Learned from runtime triage: title alone gives no signal.
+PRESALES_SIGNALS: tuple[str, ...] = (
+    "account executive", "proof of value", " pov ", "rfp", "sales cycle",
+    "quota-carrying", "quota carrying", "pre-sales", "presales", "win rate",
+    "deal desk", "closing deals", "closes deals", "close deals",
+)
+PRESALES_TITLE = re.compile(r"solutions? engineer|sales engineer")
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -194,6 +208,8 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "onsite-hybrid"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
+    if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
+        return "pre-sales"
     if REGION_TITLE.search(title):
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
