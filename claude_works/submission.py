@@ -165,6 +165,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Account creation is per-tenant (save which tenants have accounts); some tenants skip email verification entirely.",
         "Resume autofill parses BADLY (it has put a city into the name fields): always re-verify the My Information page after autofill.",
         "Dropdowns are button[aria-haspopup=listbox] then [role=option]; 'How did you hear' is a two-level menu; it is an 8-step wizard and the Review step is the natural verification checkpoint.",
+        "Liveness check without a browser: GET https://{tenant}.{dc}.myworkdayjobs.com/wday/cxs/{tenant}/{site}{externalPath} (parse tenant/dc/site/externalPath straight out of the posting URL) returns jobPostingInfo.title for a live req and a 403/404 for a dead or bot-blocked one. A raw HTML fetch is not a substitute: the page is a JS shell whose title stays empty either way, so only record closed on a repeated 403 from this API plus an empty title and no job text in the plain HTML together, not on either signal alone.",
     ],
     "gem": [
         "hCaptcha shape-puzzle wall: fill everything, then PARK for the human; never attempt the puzzle.",
@@ -173,6 +174,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     ],
     "icims": [
         "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
+        "Liveness check needs a real browser, not a curl-with-user-agent fetch: the page is a JS shell whose raw HTML title reads as a generic 'iCIMS Careers Portal' (or empty) for BOTH a live and a dead posting, so a plain HTTP fetch cannot tell them apart and will false-positive a live high-fit posting as dead. Render the page (headless browser navigate plus snapshot) and read the rendered job title and body before recording closed-expired.",
     ],
     "breezy": [
         "Fully headless-submittable: no captcha, no robot wall, no account. The apply form lives at the posting URL plus /apply; success is a redirect to /apply/submitted with an 'Application Submitted' heading.",
