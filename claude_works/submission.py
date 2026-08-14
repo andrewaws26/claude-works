@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -131,6 +131,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "When the browser tab keeps dying mid-fill across multiple refill attempts (another automation session sharing the browser, or a timed death), stop driving the form call-by-call: every gap between automation calls is a window to lose the tab. Run the ENTIRE pass as one scripted call instead: navigate, all text fills, the phone-country select, resume setInputFiles, cover letter, every screening select via a small pick helper, a programmatic verify, and the single submit click, all inside one script. Losing the tab AFTER an emailed-code gate appears is unrecoverable for that code (a fresh submit issues a fresh code and invalidates the old one), so budget the code fetch and entry to happen within seconds of each other.",
         "After the resume uploads, the resume section's own 'enter manually' toggle disappears along with the file input, so a positional index written against the pre-upload layout (second 'enter manually' button = cover letter) times out post-upload; count the toggles at use time or select the first remaining one.",
         "On the 8-box security-code widget, a programmatic fill() puts ONE character in the first box and advances focus; the auto-distribute behavior only fires on real keyboard typing. Click the first box, then keyboard-type the full code with a small delay per key.",
+        "If a stray fill() already placed the first character on the 8-box widget, no clearing is needed to recover: focus is already on box 2, so press the REMAINING characters one keypress at a time and focus auto-advances per box; the submit button re-enables once box 8 fills. Verify by concatenating the code group's input values and checking the tail equals the full code.",
         "Detecting the code gate by grepping a truncated top slice of the page text false-negatives, because the description sits above the form: count the security-code textboxes or search the full page text for the gate wording.",
     ],
     "lever": [
@@ -178,6 +179,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "HONEYPOT: a hidden unlabeled text input (name like hp_XXXX) sits before the submit button; leave it empty, filling it flags the submission as a bot.",
         "An optional SMS-consent checkbox under the phone field is not required for submit; leave it unchecked unless consent is intended.",
         "Work History and Education are required sections but the resume parse satisfies them; education dates may stay empty. The cover-letter textarea is name=cCoverLetter.",
+    ],
+    "smartrecruiters": [
+        "Headless JD screening works via the public postings API (api.smartrecruiters.com/v1/companies/<org>/postings/<postingId>, where postingId is the numeric tail of the public job URL): it returns an active flag, structured location including a remote boolean, and the full job-ad sections as HTML, so liveness and rail screening cost zero browser time.",
+        "The apply flow is a hard robot wall: the posting page's apply link redirects to a oneclick-ui publication URL that answers 403 and renders a 'Verifying the device...' iframe, which resolves to an 'Access is temporarily restricted' page citing automated activity on the network. The form is never reachable headlessly, so there is nothing to fill: park immediately with the resume and prepared answers, and do not retry or alter the browser fingerprint (that is detection evasion).",
+        "A public candidate-apply API exists for this platform, but using it to route around the explicit device-verification block is a bypass and stays out of bounds; the human applies through their own browser.",
+        "Queue-scoring implication: postings from this platform often arrive labeled as a generic custom ATS because the job lives on a branded careers URL; classify by the smartrecruiters.com apply link and score it as a wall-class channel so it only tops the queue on an exceptional fit.",
     ],
     "rippling": [
         "No account needed: Apply opens a single-page form; resume-parse autofill is excellent, so upload the resume FIRST and it fills name/email/phone/location/link/company, leaving only the dropdowns.",
@@ -250,6 +257,8 @@ def classify_ats(job: Job) -> str:
         return "rippling"
     if "breezy.hr" in u:
         return "breezy"
+    if "smartrecruiters.com" in u:
+        return "smartrecruiters"
     return job.ats.lower() or "unknown"
 
 
