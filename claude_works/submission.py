@@ -133,6 +133,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Some orgs gate the submit POST behind invisible Cloudflare Turnstile: the button sticks on Submitting..., the application POST never fires, and the Turnstile pat request 401s. It will not pass headlessly and a reload retry hits the same wall; it is a robot check, so fill-and-park. Detect early by checking the network log for challenges.cloudflare.com/turnstile.",
         "The whole form (fields, radios, uploaded-resume ref) persists in localStorage per browser profile, so a reload restores everything (accept the beforeunload dialog). When parking, export the long-form answers to a file; the human's own browser starts empty.",
         "Question textareas can carry a tiny maxlength and fill() silently truncates mid-word at the cap; re-read value.length after filling and rewrite a complete answer that fits.",
+        "When Turnstile-walled, re-read the description body before parking: some orgs state a direct email application path (send resume plus a short note to a recruiting address with a given subject line). Surface that email path first in the park record since it skips the robot wall and follows the org's own stated process; the send itself stays with the human.",
     ],
     "hirebridge": [
         "Account email-gate first: enter the email, then RE-TYPE it to confirm (not an emailed code); proceeds to QuickApply.",
