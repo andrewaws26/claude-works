@@ -42,6 +42,11 @@ def test_over_level_title_is_parked():
         assert res.parked and res.parked[0][1] == "over-level", title
 
 
+def test_evergreen_posting_is_parked():
+    res = curation.curate([_job("Forward Deployed Engineer (Evergreen)")])
+    assert res.parked and res.parked[0][1] == "evergreen-posting"
+
+
 def test_intern_title_is_parked_but_internal_is_not():
     res = curation.curate([_job("Software Engineering Intern")])
     assert res.parked and res.parked[0][1] == "over-level"

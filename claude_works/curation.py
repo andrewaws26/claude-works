@@ -146,8 +146,8 @@ CHANNEL_BONUS: dict[str, int] = {
 
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
-    "advanced-degree", "lead-in-body", "model-training", "onsite-hybrid",
-    "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
+    "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
+    "onsite-hybrid", "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
 )
 
 
@@ -198,6 +198,10 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         or EXTRA_LEVEL_WORD.search(title)
     ):
         return "over-level"
+    # Evergreen postings are proactive talent-pipeline posts, not open seats; an
+    # automated run would spend a screen slot on a req nobody is hiring against.
+    if "evergreen" in title:
+        return "evergreen-posting"
     if "scientist" in title or any(d in blob for d in ADVANCED_DEGREE):
         return "advanced-degree"
     if any(p in blob for p in LEAD_BODY):
