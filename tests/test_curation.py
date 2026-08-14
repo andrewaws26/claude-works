@@ -114,6 +114,26 @@ def test_hard_skill_gap_is_parked():
     assert res.parked and res.parked[0][1] == "hard-skill-gap"
 
 
+def test_comp_below_floor_is_parked():
+    # A range topping under the floor can never clear the comp bar; park it
+    # before a run spends a screen slot. Concatenated discovery text ("$110,0003+
+    # years") and k-suffix ranges must both parse to the true ceiling.
+    job = _job("AI Engineer")
+    job.comp = "$93,500 - $110,0003+ years in a customer-facing role"
+    res = curation.curate([job])
+    assert res.parked and res.parked[0][1] == "comp-below-floor"
+
+    ok = _job("AI Engineer")
+    ok.comp = "$100k - $150k"
+    assert curation.curate([ok]).active
+
+    # Funding amounts and hourly rates are not annual salary signals: keep.
+    funded = _job("AI Engineer")
+    funded.comp = "$160M raised, $45.00 per hour contract track"
+    assert curation.curate([funded]).active
+    assert curation.comp_ceiling("no salary present") is None
+
+
 def test_remote_us_role_with_no_location_still_kept():
     # Absent location must NOT trigger the non-US park (only a present, non-US one does).
     res = curation.curate([_job("AI Engineer", location="")])

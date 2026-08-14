@@ -148,7 +148,25 @@ PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
+    "comp-below-floor",
 )
+
+# Compensation floor: when the TOP of a posting's salary range is an annual
+# figure below the floor, the role can never clear the candidate's comp bar, so
+# park it before a run spends a screen slot on it. Parsing notes: discovery text
+# often concatenates the salary with the next sentence ("$295,0007+ years"), so
+# take exactly three digits after the comma and drop the remainder; funding
+# amounts ("$160M raised") have no comma and no k-suffix, so they never match;
+# values under $30k (hourly rates, equity fragments) are ignored as non-annual.
+COMP_FLOOR = 120_000
+_SALARY = re.compile(r"\$\s?(\d{2,3}),(\d{3})|\$(\d{2,3})k(?!\d)", re.I)
+
+
+def comp_ceiling(text: str) -> int | None:
+    """Largest annual salary figure found in ``text``, or ``None``."""
+    vals = [int(a + b) if a else int(k) * 1000 for a, b, k in _SALARY.findall(text)]
+    annual = [v for v in vals if v >= 30_000]
+    return max(annual) if annual else None
 
 
 @dataclass
@@ -220,6 +238,9 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "non-us-only"
     if any(s in blob for s in RAILS.hard_gap_skills):
         return "hard-skill-gap"
+    ceiling = comp_ceiling(job.comp)
+    if ceiling is not None and ceiling < COMP_FLOOR:
+        return "comp-below-floor"
     return None
 
 
