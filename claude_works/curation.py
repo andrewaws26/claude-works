@@ -120,7 +120,7 @@ REGION_TITLE = re.compile(
     r"\b(benelux|nordics?|emea|apac|dach|latam|anz|iberia|europe|european|"
     r"united kingdom|ireland|germany|france|spain|italy|poland|netherlands|"
     r"japan|singapore|australia|new zealand|brazil|mexico|canada|korea|israel|"
-    r"middle east|africa)\b|[a-z]+[- ]speaking",
+    r"middle east|africa|eu|uk)\b|[a-z]+[- ]speaking",
 )
 
 # US-location signals. When a location is present but shows none of these, the

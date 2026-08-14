@@ -207,15 +207,18 @@ def excluded_company_match(job: Job) -> str | None:
     """Return the matching excluded-company entry, or None.
 
     Matching is deliberately narrow: a whole-word hit on the company name, or a
-    normalized-slug equality. A bare substring test would false-positive
-    ('axon' inside 'Axonius'), which is why ``in`` is never used here.
+    normalized-slug equality on the parsed company or the apply-URL org slug.
+    A bare substring test would false-positive ('axon' inside 'Axonius'),
+    which is why ``in`` is never used here. The URL slug matters because rows
+    ingested from truncated sources can parse to an unknown company while the
+    board URL still names the org.
     """
     from .models import _slug
 
     name = (job.company or "").lower()
-    slug = job.company_slug
+    slugs = {s for s in (job.company_slug, job.url_org_slug) if s}
     for co in RAILS.excluded_companies:
-        if re.search(rf"\b{re.escape(co)}\b", name) or (slug and slug == _slug(co)):
+        if re.search(rf"\b{re.escape(co)}\b", name) or _slug(co) in slugs:
             return co
     return None
 
