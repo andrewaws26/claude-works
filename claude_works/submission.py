@@ -188,6 +188,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "HONEYPOT: a hidden unlabeled text input (name like hp_XXXX) sits before the submit button; leave it empty, filling it flags the submission as a bot.",
         "An optional SMS-consent checkbox under the phone field is not required for submit; leave it unchecked unless consent is intended.",
         "Work History and Education are required sections but the resume parse satisfies them; education dates may stay empty. The cover-letter textarea is name=cCoverLetter.",
+        "The desired-salary field is a plain text input with no numeric mask, but a batched multi-field fill call can silently skip it while every other field in the same batch commits; fill it with its own dedicated click-then-type step and verify it separately before submit.",
+        "The same mid-fill about:blank tab death seen on other ATS platforms can also fire on the submit click itself here, not just during filling. Recovery is identical: re-navigate to the apply URL, re-upload the resume (the parse re-runs and re-garbles fields the same way), refill everything in one clean pass from a single fresh snapshot, then submit once without an intermediate snapshot.",
     ],
     "smartrecruiters": [
         "Headless JD screening works via the public postings API (api.smartrecruiters.com/v1/companies/<org>/postings/<postingId>, where postingId is the numeric tail of the public job URL): it returns an active flag, structured location including a remote boolean, and the full job-ad sections as HTML, so liveness and rail screening cost zero browser time.",
