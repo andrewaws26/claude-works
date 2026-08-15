@@ -109,6 +109,16 @@ def test_bamboohr_parks_at_recaptcha():
     assert any("client-rendered" in n for n in plan.notes)
 
 
+def test_comeet_parks_at_session_verification_bot_check():
+    job = Job("Forward Deployed AI Engineer", "Acme", "https://www.comeet.com/jobs/acme/1.234/role/5.678")
+    assert submission.classify_ats(job) == "comeet"
+    plan = submission.plan_submission(job)
+    assert plan.action == "fill_and_park"
+    assert plan.human_step is not None and "session-verification" in plan.human_step
+    assert any("session verification failed" in n for n in plan.notes)
+    assert any("applynow.io" in n for n in plan.notes)
+
+
 def test_every_plan_carries_the_general_gotchas_memory():
     plan = submission.plan_submission(
         Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x")

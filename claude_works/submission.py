@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -242,6 +242,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "There are two identically-labeled Submit-equivalent buttons (top and bottom of the form); use the bottom one so every field above it has already been filled and is in the DOM.",
         "No captcha or email-code gate observed; success is a dedicated confirmation page ('Application Received') plus the portal nav switching to logged-in links (View Attachments / Upload Attachment / View Profile / Logout), which doubles as proof the account was created.",
     ],
+    "comeet": [
+        "The apply form is a same-page iframe on the comeet.com job listing (First/Last name, Email, Phone, Resume, Personal website, Cover Letter, Portfolio, Personal note); no visible captcha widget, so it looks fully accountless and headless-friendly.",
+        "The Personal website field validates client-side and requires a full URL scheme; a bare domain like 'github.com/user' fails with 'Invalid web address' and blocks submit until a 'https://' prefix is added.",
+        "Submit itself is gated by an invisible session-verification bot check: a fully valid, fully filled form can bounce with 'session verification failed due to a human check error. Please refresh the page, then resubmit your application.' Refreshing and resubmitting (its own suggested remedy) can fail again the same way. Treat repeated failures of this specific message as automation/bot-score detection, not a solvable challenge: fill-and-park after one refresh-and-retry, do not loop resubmitting.",
+        "The park form itself surfaces a fallback: a mailto link to the board's own '<slug>@applynow.io' address ('Email Your Resume'). Note that address for the human in the park record; do not auto-send outbound email on the candidate's behalf.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -317,6 +323,8 @@ def classify_ats(job: Job) -> str:
         return "brightmove"
     if "bamboohr.com" in u:
         return "bamboohr"
+    if "comeet.com" in u:
+        return "comeet"
     return job.ats.lower() or "unknown"
 
 
@@ -388,6 +396,7 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
             "gem": "hCaptcha shape puzzle (Gem)",
             "icims": "account creation / email verification (iCIMS)",
             "bamboohr": "Google reCAPTCHA v2 checkbox (BambooHR)",
+            "comeet": "invisible session-verification bot check (Comeet)",
         }.get(ats, "Workday date-spinbutton or account verification")
     else:
         action = "fill_and_park"
