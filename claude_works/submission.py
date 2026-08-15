@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -205,6 +205,13 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The submit button sits behind a visible Google reCAPTCHA v2 checkbox ('I'm not a robot'). Treat it like any other captcha: never auto-solve it, fill-and-park for the human.",
         "Standard fields: first/last name, email, phone, address (city/state/postal), resume (attach or paste), LinkedIn URL, a typed-full-legal-name e-signature textbox, and several Yes/No screening questions rendered as free-text boxes rather than radio buttons or dropdowns.",
     ],
+    "bamboohr": [
+        "The listing page (<org>.bamboohr.com/careers/<id>) is a client-rendered app: a fresh page load lands on a bare loading placeholder, so wait a few seconds (or wait for the job title text) before reading the page, or the body reads as almost empty.",
+        "A plain HTTP fetch of the listing page can return 403 (bot-blocked); screen the job description with a real rendered browser page instead of a bare HTTP client.",
+        "Clicking Apply swaps the job-description pane for the application form IN PLACE on the same URL, no navigation happens, so re-read the page after the click rather than expecting a new one.",
+        "Standard fields: first/last name, email, phone, address plus city/state/ZIP (state is a custom searchable listbox, not a native select), country (usually pre-set), a resume upload (real file chooser), a masked Date Available field (mm/dd/yyyy), a free-text Desired Pay field, website/portfolio and LinkedIn URL, then per-employer custom Yes/No question groups and free-text screening questions that can include genuine essay prompts (answer honestly from the candidate's real background).",
+        "The submit button sits behind a Google reCAPTCHA v2 'I'm not a robot' checkbox rendered in an iframe near the bottom of the form. Treat it like any other captcha: never auto-solve it. Fill and verify every other field, then fill-and-park for the human; this makes the platform a captcha wall on an otherwise accountless form, not an account-creation wall.",
+    ],
     "rippling": [
         "No account needed: Apply opens a single-page form; resume-parse autofill is excellent, so upload the resume FIRST and it fills name/email/phone/location/link/company, leaving only the dropdowns.",
         "Dropdowns (visa question, EEO fields) are custom comboboxes: click the combobox, options render inside a dialog listbox, click the option by text; values verify via the combobox display text and its search input value, and the Apply button enables only when required fields are set.",
@@ -291,6 +298,8 @@ def classify_ats(job: Job) -> str:
         return "jazzhr"
     if "brightmove.com" in u:
         return "brightmove"
+    if "bamboohr.com" in u:
+        return "bamboohr"
     return job.ats.lower() or "unknown"
 
 
@@ -361,6 +370,7 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
             "lever": "captcha / hCaptcha (Lever)",
             "gem": "hCaptcha shape puzzle (Gem)",
             "icims": "account creation / email verification (iCIMS)",
+            "bamboohr": "Google reCAPTCHA v2 checkbox (BambooHR)",
         }.get(ats, "Workday date-spinbutton or account verification")
     else:
         action = "fill_and_park"

@@ -99,6 +99,16 @@ def test_brightmove_auto_submits_with_account_creation_gotchas():
     assert any("Application Received" in n for n in plan.notes)
 
 
+def test_bamboohr_parks_at_recaptcha():
+    job = Job("AI Platform Engineer", "Acme", "https://acme.bamboohr.com/careers/246")
+    assert submission.classify_ats(job) == "bamboohr"
+    plan = submission.plan_submission(job)
+    assert plan.action == "fill_and_park"
+    assert plan.human_step is not None and "reCAPTCHA" in plan.human_step
+    assert any("reCAPTCHA" in n for n in plan.notes)
+    assert any("client-rendered" in n for n in plan.notes)
+
+
 def test_every_plan_carries_the_general_gotchas_memory():
     plan = submission.plan_submission(
         Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x")
