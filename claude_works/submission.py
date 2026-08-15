@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -186,6 +186,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
         "Liveness check needs a real browser, not a curl-with-user-agent fetch: the page is a JS shell whose raw HTML title reads as a generic 'iCIMS Careers Portal' (or empty) for BOTH a live and a dead posting, so a plain HTTP fetch cannot tell them apart and will false-positive a live high-fit posting as dead. Render the page (headless browser navigate plus snapshot) and read the rendered job title and body before recording closed-expired.",
     ],
+    "oracle": [
+        "Not always an account wall: some Oracle Fusion Cloud Recruiting instances (oraclecloud.com) use a guest-email flow instead, headed 'You don't need to have an account'. Just an email field plus a terms-and-conditions modal to agree to, then an emailed one-time code gate (rendered as several separate single-digit spinbuttons rather than one text box) that a real inbox check can resolve the same way as a Greenhouse email-code gate. Confirm which shape a given instance uses before defaulting to park.",
+        "If the candidate has a prior application on the same career site under the same email, the whole multi-step form (personal info, screening questions, experience, resume, EEO, veteran status) can come back pre-filled from that saved profile, including a stale resume attachment from a different job; verify every field against the standard answers and replace the resume with the one tailored for the current role before submitting.",
+        "A required-looking 'Tax Credits' step can gate Submit even though the underlying WOTC survey it links to (typically hosted by a third-party tax firm) states participation is voluntary and does not affect the application. Since the ATS still enforces it, complete the short eligibility questionnaire (no SSN, just zip code and yes/no questions about employment history and public-assistance program participation) rather than parking, answering honestly and declining anything not affirmatively true.",
+        "Success signal: submit redirects to a 'My Applications' profile page with a 'Thank you for your job application' banner and the role listed under Active Job Applications with a status such as 'Under Consideration' and today's applied date; there is no separate /confirmation URL to check.",
+    ],
     "breezy": [
         "Fully headless-submittable: no captcha, no robot wall, no account. The apply form lives at the posting URL plus /apply; success is a redirect to /apply/submitted with an 'Application Submitted' heading.",
         "Resume-parse autofill: click the Upload Resume link (a real file chooser opens; answer it with the file path), wait several seconds, and the parse fills Work History, Education, and the experience summary from the PDF, but NOT the personal details (name/email/phone/address), so fill those yourself after.",
@@ -293,6 +299,8 @@ def classify_ats(job: Job) -> str:
         return "gem"
     if "icims.com" in u:
         return "icims"
+    if "oraclecloud.com" in u:
+        return "oracle"
     if "ats.rippling.com" in u:
         return "rippling"
     if "breezy.hr" in u:
