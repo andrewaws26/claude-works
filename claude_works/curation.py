@@ -54,7 +54,10 @@ LANE_POINTS: dict[str, int] = (
 )
 
 # Off-lane titles to park (design / sales / consulting / research / non-software).
+# "GTM engineer" and kin are growth/sales-ops automation seats, not builder roles;
+# board harvests of AI companies queue them in bulk, so the title itself is the rail.
 OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
+    "gtm engineer", "gtm operations", "growth engineer",
     "design engineer", "designer", "ux ", "ui/ux", "consultant", "value engineer",
     "pre-sales", "presales", "sales engineer", "recruiter", "sourcer", " sales",
     "account executive", "account manager", "marketing", "copywriter",
