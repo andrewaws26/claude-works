@@ -51,7 +51,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # ATSes whose forms this system can fill and submit without a human step.
 # (Workable: recaptcha is usually disabled. Hirebridge: completable after a
 # re-type email gate, no emailed code.)
-AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge"}
+AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
 PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr"}
 
@@ -209,6 +209,14 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The form does not persist for the human's own browser, so a park must list every answer; the parse autofill makes the manual redo about two minutes.",
         "Element references go stale after option clicks and can silently re-resolve to a different element whose click times out on 'subtree intercepts pointer events'; re-snapshot scoped to the submit button's test id for a fresh reference before clicking.",
     ],
+    "brightmove": [
+        "The job page renders the description directly in the initial HTML (title, job id, remote flag, location, full body) with no JS-rendering wait, so a plain HTTP fetch screens the JD for free.",
+        "Apply is really account creation: a full candidate-portal signup (username, password, password confirmation, personal/contact/EEOC/compensation/qualifications fields, resume) rather than a lightweight one-click form. Treat it as in-scope account creation, not an extra wall.",
+        "Resume-parse autofill is the fast path: upload the resume to the dedicated 'auto-populate' control first and it fills name/email/city/state/phone from the PDF, plus drops a full plaintext resume dump into a paste-fallback textarea (leave that field alone, it is not a duplicate to clear) and attaches the file to the resume upload control. Only the remaining structured fields (address/postal code, username/password, EEOC dropdowns, qualification radios) need manual fill.",
+        "EEOC race and disability fields default to a decline option already; only gender and veteran status need an explicit select.",
+        "There are two identically-labeled Submit-equivalent buttons (top and bottom of the form); use the bottom one so every field above it has already been filled and is in the DOM.",
+        "No captcha or email-code gate observed; success is a dedicated confirmation page ('Application Received') plus the portal nav switching to logged-in links (View Attachments / Upload Attachment / View Profile / Logout), which doubles as proof the account was created.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -278,6 +286,8 @@ def classify_ats(job: Job) -> str:
         return "smartrecruiters"
     if "applytojob.com" in u:
         return "jazzhr"
+    if "brightmove.com" in u:
+        return "brightmove"
     return job.ats.lower() or "unknown"
 
 

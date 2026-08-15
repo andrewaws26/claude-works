@@ -90,6 +90,15 @@ def test_hirebridge_auto_submits_with_email_gate_and_formvalidation_gotchas():
     assert any("FormValidation" in n for n in plan.notes)
 
 
+def test_brightmove_auto_submits_with_account_creation_gotchas():
+    job = Job("Applied AI Engineer", "Acme", "https://portal.brightmove.com/jb.do?reqGK=1&companyGK=2&portalGK=3")
+    assert submission.classify_ats(job) == "brightmove"
+    plan = submission.plan_submission(job)
+    assert plan.action == "auto_submit"
+    assert any("account creation" in n for n in plan.notes)
+    assert any("Application Received" in n for n in plan.notes)
+
+
 def test_every_plan_carries_the_general_gotchas_memory():
     plan = submission.plan_submission(
         Job("AI Engineer", "Acme", "https://jobs.ashbyhq.com/acme/x")
