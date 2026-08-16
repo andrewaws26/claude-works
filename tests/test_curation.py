@@ -121,6 +121,23 @@ def test_already_screened_role_is_parked_before_burning_a_screen_slot():
     assert res2.active
 
 
+def test_already_screened_matches_company_embedded_as_hyphen_tail():
+    # Harvest titles sometimes carry the company as a hyphen tail after a title
+    # that itself contains hyphens ("Software Engineer, Full Stack - GTM - Acme").
+    # The screened ledger stores ("acme", "Software Engineer, Full Stack - GTM");
+    # every split point must be tried or the re-queued dup burns a screen slot.
+    job = Job(
+        title="Software Engineer, Full Stack - GTM - Acme Widgets",
+        company="?",
+        url="https://example.com/careers/123",
+        location="Remote, US",
+        remote=True,
+    )
+    screened = {curation.role_key("acmewidgets", "Software Engineer, Full Stack - GTM")}
+    res = curation.curate([job], screened_keys=screened)
+    assert res.parked and res.parked[0][1] == "already-screened"
+
+
 def test_scientist_and_phd_are_parked_advanced_degree():
     # "Scientist" titles and PhD-required JDs are a credential knockout, even in-lane.
     res = curation.curate([_job("Applied AI/ML Scientist")])

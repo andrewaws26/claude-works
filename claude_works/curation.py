@@ -24,7 +24,7 @@ from typing import Any
 
 from .config import POLICY, RAILS, matched_excluded_domain, policy_tuple
 from .discovery import excluded_company_match
-from .models import Job
+from .models import Job, _slug
 
 # Role-title lanes the candidate converts in, with fit points (strongest first).
 # These bias the active queue so the loop applies to the best-matching role first.
@@ -245,11 +245,23 @@ def park_reason(
     # is durable at role level, so park duplicates before they cost a screen slot.
     # Match on both the parsed company and the URL org, since harvest rows often
     # lack a parseable company name.
-    if screened_keys and (
-        role_key(job.company_slug, job.title) in screened_keys
-        or role_key(job.url_org_slug, job.title) in screened_keys
-    ):
-        return "already-screened"
+    if screened_keys:
+        cand_keys = {
+            role_key(job.company_slug, job.title),
+            role_key(job.url_org_slug, job.title),
+        }
+        # Harvest titles sometimes embed the company as a hyphen tail
+        # ("Software Engineer, Full Stack - GTM - Acme"), and a parser that
+        # splits at the first hyphen leaves the real company buried in the
+        # remainder, so neither plain key matches the ledger row
+        # "Acme | Software Engineer, Full Stack - GTM". Try every split point,
+        # treating the tail as the company and the head as the title.
+        segs = re.split(r"\s+[\u2014\u2013-]\s+", job.title)
+        for i in range(1, len(segs)):
+            cand_keys.add(role_key(_slug(" - ".join(segs[i:])), " - ".join(segs[:i])))
+            cand_keys.add(role_key(_slug(segs[i]), " - ".join(segs[:i])))
+        if cand_keys & set(screened_keys):
+            return "already-screened"
     if excluded_company_match(job) is not None:
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:
