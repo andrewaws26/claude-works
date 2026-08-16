@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -186,6 +187,27 @@ class Rails:
 
 
 RAILS = Rails.from_env()
+
+# Bare "clearance" in excluded_domains is a defense signal UNLESS negated ("no
+# clearance", "clearance not required") - some postings advertise the ABSENCE of a
+# clearance requirement, and a naive substring match false-positives on that
+# negation. Shared by every excluded_domains check so the fix lives in one place.
+_CLEARANCE_NEGATED = re.compile(
+    r"\bno\b\W+(?:\w+\W+){0,2}clearance|clearance\W+(?:\w+\W+){0,2}not required|without\W+(?:\w+\W+){0,2}clearance"
+)
+
+
+def matched_excluded_domain(blob: str, domains: tuple[str, ...] | None = None) -> str | None:
+    """First excluded-domain term found in ``blob`` (word-boundary match), or ``None``."""
+    doms = RAILS.excluded_domains if domains is None else domains
+    for dom in doms:
+        if dom == "clearance":
+            if "clearance" in blob and not _CLEARANCE_NEGATED.search(blob):
+                return dom
+            continue
+        if re.search(rf"\b{re.escape(dom)}\b", blob):
+            return dom
+    return None
 
 
 def get_credential(field_name: str) -> str:

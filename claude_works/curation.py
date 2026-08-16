@@ -22,7 +22,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .config import POLICY, RAILS, policy_tuple
+from .config import POLICY, RAILS, matched_excluded_domain, policy_tuple
 from .discovery import excluded_company_match
 from .models import Job
 
@@ -211,7 +211,7 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "already-applied"
     if excluded_company_match(job) is not None:
         return "excluded-company"
-    if any(dom in blob for dom in RAILS.excluded_domains):
+    if matched_excluded_domain(blob) is not None:
         return "excluded-domain"
     if (
         any(t in title for t in RAILS.overlevel_terms)

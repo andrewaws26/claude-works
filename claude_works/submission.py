@@ -22,11 +22,10 @@ real outcome back through ``record_application``.
 
 from __future__ import annotations
 
-import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .config import RAILS, get_credential
+from .config import get_credential, matched_excluded_domain
 from .discovery import excluded_company_match
 from .models import Job
 
@@ -344,9 +343,8 @@ def _rail_block(job: Job) -> str | None:
     if (co := excluded_company_match(job)) is not None:
         return f"excluded company / active track: {co}"
     blob = f"{job.title} {job.company} {job.location}".lower()
-    for dom in RAILS.excluded_domains:
-        if re.search(rf"\b{re.escape(dom)}\b", blob):
-            return f"excluded domain: {dom}"
+    if (dom := matched_excluded_domain(blob)) is not None:
+        return f"excluded domain: {dom}"
     return None
 
 

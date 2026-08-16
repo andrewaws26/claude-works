@@ -61,6 +61,23 @@ def test_excluded_domain_is_parked():
     assert res.parked and res.parked[0][1] == "excluded-domain"
 
 
+def test_negated_clearance_is_not_parked():
+    # A posting that advertises the ABSENCE of a clearance requirement ("no
+    # clearance") must not trip the bare "clearance" excluded-domain signal.
+    job = _job("Forward Deployed AI Engineer")
+    job.comp = "no clearance required"
+    res = curation.curate([job])
+    assert res.parked == []
+    assert res.active
+
+
+def test_required_clearance_is_parked():
+    job = _job("AI Engineer")
+    job.comp = "active secret clearance required"
+    res = curation.curate([job])
+    assert res.parked and res.parked[0][1] == "excluded-domain"
+
+
 def test_already_applied_company_is_parked():
     job = _job("AI Engineer", company="Acme")
     res = curation.curate([job], applied_slugs={job.company_slug})

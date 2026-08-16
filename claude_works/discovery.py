@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from . import boards
-from .config import PATHS, RAILS, policy_tuple
+from .config import PATHS, RAILS, matched_excluded_domain, policy_tuple
 from .models import Job, Score, SearchAngle
 
 # --------------------------------------------------------------------------- #
@@ -195,9 +195,8 @@ def _hard_cap(job: Job, blob: str) -> str | None:
         if re.search(rf"\b{re.escape(gap)}\b.*\b(required|must have|expert)\b", blob) or \
            re.search(rf"\b(required|must have|expert)\b.*\b{re.escape(gap)}\b", blob):
             return f"hard-required skill gap ('{gap}')"
-    for dom in RAILS.excluded_domains:
-        if re.search(rf"\b{re.escape(dom)}\b", blob):
-            return f"excluded domain ('{dom}')"
+    if (dom := matched_excluded_domain(blob)) is not None:
+        return f"excluded domain ('{dom}')"
     if (co := excluded_company_match(job)) is not None:
         return f"excluded company / active track ('{co}')"
     return None
