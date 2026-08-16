@@ -115,6 +115,19 @@ PRESALES_SIGNALS: tuple[str, ...] = (
 )
 PRESALES_TITLE = re.compile(r"solutions? engineer|sales engineer")
 
+# Contact-center / CCaaS architect roles: "Solutions Architect" postings whose body
+# is really telephony or contact-center platform consulting (Amazon Connect, Genesys,
+# Five9, CCaaS). Deep contact-center platform expertise is a hard domain gap, and
+# these postings cluster, so one missed pattern burns several screen slots in a row.
+# Gated on an architect/solutions-engineer role shape so a builder role at a
+# customer-experience company is never caught. Learned from runtime triage: three
+# of eight screen slots in one run fell to this exact knockout.
+CONTACT_CENTER_SIGNALS: tuple[str, ...] = (
+    "amazon connect", "aws connect", "genesys", "five9", "ccaas",
+    "contact center", "contact-center", "call center",
+)
+CONTACT_CENTER_TITLE = re.compile(r"architect|solutions? engineer|sales engineer")
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -151,7 +164,7 @@ PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
-    "comp-below-floor",
+    "comp-below-floor", "pre-sales", "contact-center",
 )
 
 # Compensation floor: when the TOP of a posting's salary range is an annual
@@ -235,6 +248,8 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
         return "pre-sales"
+    if CONTACT_CENTER_TITLE.search(title) and any(s in blob for s in CONTACT_CENTER_SIGNALS):
+        return "contact-center"
     if REGION_TITLE.search(title):
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
