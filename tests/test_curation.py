@@ -100,6 +100,27 @@ def test_already_applied_matches_url_org_when_name_is_missing():
     assert res.parked and res.parked[0][1] == "already-applied"
 
 
+def test_already_screened_role_is_parked_before_burning_a_screen_slot():
+    # A role a prior run screened and rejected re-enters via a board harvest as a
+    # fresh row (often with an unparseable company name); the role-level screened
+    # ledger must catch it through the URL org so runs stop re-screening it.
+    job = Job(
+        title="Enterprise Solutions Engineer",
+        company="?",
+        url="https://jobs.ashbyhq.com/acme-widgets/12345678-90ab-cdef-1234-567890abcdef",
+        location="Remote, US",
+        remote=True,
+        ats="ashby",
+    )
+    screened = {curation.role_key("acmewidgets", "Enterprise Solutions Engineer")}
+    res = curation.curate([job], screened_keys=screened)
+    assert res.parked and res.parked[0][1] == "already-screened"
+    # A different role at the same screened company stays live.
+    other = _job("AI Engineer", company="Acme Widgets")
+    res2 = curation.curate([other], screened_keys=screened)
+    assert res2.active
+
+
 def test_scientist_and_phd_are_parked_advanced_degree():
     # "Scientist" titles and PhD-required JDs are a credential knockout, even in-lane.
     res = curation.curate([_job("Applied AI/ML Scientist")])

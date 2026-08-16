@@ -171,7 +171,7 @@ CHANNEL_BONUS: dict[str, int] = {
 }
 
 PARK_REASONS: tuple[str, ...] = (
-    "already-applied", "excluded-company", "excluded-domain", "over-level",
+    "already-applied", "already-screened", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap",
@@ -221,7 +221,14 @@ def _blob(job: Job) -> str:
     return " ".join([job.title, job.company, job.location, job.comp]).lower()
 
 
-def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
+def role_key(company_slug: str, title: str) -> tuple[str, str]:
+    """Role-level identity: (company slug, normalized title prefix)."""
+    return (company_slug or "", re.sub(r"[^a-z0-9]", "", (title or "").lower())[:40])
+
+
+def park_reason(
+    job: Job, applied_slugs: set[str], screened_keys: set[tuple[str, str]] | frozenset = frozenset()
+) -> str | None:
     """Return why a job should be parked, or ``None`` to keep it.
 
     Checks run cheapest-and-most-decisive first and reuse ``RAILS`` so curation and
@@ -233,6 +240,16 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "already-applied"
     if job.url_org_slug and job.url_org_slug in applied_slugs:
         return "already-applied"
+    # Roles a prior run already screened and rejected re-enter through board
+    # harvests as fresh rows and burn whole runs re-screening them; a rejection
+    # is durable at role level, so park duplicates before they cost a screen slot.
+    # Match on both the parsed company and the URL org, since harvest rows often
+    # lack a parseable company name.
+    if screened_keys and (
+        role_key(job.company_slug, job.title) in screened_keys
+        or role_key(job.url_org_slug, job.title) in screened_keys
+    ):
+        return "already-screened"
     if excluded_company_match(job) is not None:
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:
@@ -308,17 +325,24 @@ def fit_score(job: Job) -> int:
     return score
 
 
-def curate(jobs: Iterable[Job], applied_slugs: Iterable[str] | None = None) -> CurationResult:
+def curate(
+    jobs: Iterable[Job],
+    applied_slugs: Iterable[str] | None = None,
+    screened_keys: Iterable[tuple[str, str]] | None = None,
+) -> CurationResult:
     """Partition ``jobs`` into a fit-ranked active set and a reasoned parked set.
 
     ``applied_slugs`` are normalized company slugs already in the ledger; matching
-    jobs are parked as ``already-applied``. The active list is sorted by fit
+    jobs are parked as ``already-applied``. ``screened_keys`` are ``role_key``
+    identities of roles a prior run screened and rejected; matching jobs are
+    parked as ``already-screened``. The active list is sorted by fit
     descending so the caller can pop the strongest open match in O(1).
     """
     applied = set(applied_slugs or ())
+    screened = set(screened_keys or ())
     result = CurationResult()
     for job in jobs:
-        reason = park_reason(job, applied)
+        reason = park_reason(job, applied, screened)
         if reason:
             result.parked.append((job, reason))
             result.counts[reason] = result.counts.get(reason, 0) + 1
