@@ -113,6 +113,18 @@ def test_non_us_only_is_parked():
     assert res.parked and res.parked[0][1] == "non-us-only"
 
 
+def test_explicit_non_us_location_beats_remote_label():
+    # A location like "Remote - Australia" contains "remote", which satisfies
+    # US_SIGNALS and used to slip past the non-us-only rule even though the
+    # location names a non-US country outright. The explicit country wins.
+    for location in ("Remote - Australia", "Remote, United Kingdom", "Remote, KSA; Remote, UAE"):
+        res = curation.curate([_job("AI Engineer", location=location)])
+        assert res.parked and res.parked[0][1] == "non-us-location", location
+    # A location that names both a non-US country and the US stays kept.
+    res = curation.curate([_job("AI Engineer", location="Remote - US or Canada")])
+    assert not res.parked
+
+
 def test_region_in_title_is_parked_non_us_region():
     # Regional roles often carry a bare "Hybrid" location, so the location rule
     # never fires; the title itself is the signal (incl. language requirements).

@@ -136,6 +136,8 @@ REGION_TITLE = re.compile(
     r"\b(benelux|nordics?|emea|apac|dach|latam|anz|iberia|europe|european|"
     r"united kingdom|ireland|germany|france|spain|italy|poland|netherlands|"
     r"japan|singapore|australia|new zealand|brazil|mexico|canada|korea|israel|"
+    r"mena|ksa|uae|saudi arabia|india|philippines|portugal|romania|vietnam|"
+    r"indonesia|colombia|argentina|"
     r"middle east|africa|eu|uk)\b|[a-z]+[- ]speaking",
 )
 
@@ -147,6 +149,14 @@ US_SIGNALS: tuple[str, ...] = (
     "illinois", "georgia", "florida", "san francisco", "seattle", "boston",
     "austin", "denver", "chicago", "los angeles", "atlanta", "remote, us", "us remote",
 )
+
+# Bare "remote" is NOT a US signal for the explicit-location rule below: harvester
+# rows sometimes carry a wrong "REMOTE US" label while the true ATS location reads
+# "Remote - Australia". That location contains "remote", which kept the non-us-only
+# rule from ever firing on it, and a run burned screen slots re-discovering the
+# same knockout. When the location itself names a non-US country, trust it over
+# any remote label.
+US_SIGNALS_TIGHT: tuple[str, ...] = tuple(s for s in US_SIGNALS if s != "remote")
 
 # The reasons curate can assign (stable vocabulary for summaries and tests).
 # Channel bonus: bias the active ranking toward ATSes that auto-submit cleanly, so
@@ -163,7 +173,8 @@ CHANNEL_BONUS: dict[str, int] = {
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
-    "onsite-hybrid", "off-lane", "non-us-region", "non-us-only", "hard-skill-gap",
+    "onsite-hybrid", "off-lane", "non-us-region", "non-us-location", "non-us-only",
+    "hard-skill-gap",
     "comp-below-floor", "pre-sales", "contact-center",
 )
 
@@ -254,6 +265,11 @@ def park_reason(job: Job, applied_slugs: set[str]) -> str | None:
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
         return "non-us-only"
+    loc = (job.location or "").lower()
+    if (loc and REGION_TITLE.search(loc)
+            and not any(s in loc for s in US_SIGNALS_TIGHT)
+            and not re.search(r"\bus\b|\busa\b", loc)):
+        return "non-us-location"
     if any(s in blob for s in RAILS.hard_gap_skills):
         return "hard-skill-gap"
     ceiling = comp_ceiling(job.comp)
