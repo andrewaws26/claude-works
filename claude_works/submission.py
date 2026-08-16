@@ -52,7 +52,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # re-type email gate, no emailed code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -254,6 +254,13 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "There are two identically-labeled Submit-equivalent buttons (top and bottom of the form); use the bottom one so every field above it has already been filled and is in the DOM.",
         "No captcha or email-code gate observed; success is a dedicated confirmation page ('Application Received') plus the portal nav switching to logged-in links (View Attachments / Upload Attachment / View Profile / Logout), which doubles as proof the account was created.",
     ],
+    "dayforce": [
+        "Accountless path: Apply then 'Apply without an Account' reaches a no-login manual wizard (Candidate Info, Questionnaire, Submit). Import Resume auto-populates name/email/phone/education/employment well; still hand-fill Confirm Email, LinkedIn (needs a full https:// scheme), Address Line 1/City/Zip, State/Province, the mobile number's country dialing code (defaults empty and must be explicitly picked), Preferred Contact Method, and How-did-you-hear.",
+        "A privacy-policy modal blocks all interaction on first load; check its agree checkbox and click Save before touching any field.",
+        "A custom State/Province combobox (and similarly-styled selects) can intercept direct pointer clicks near the page bottom; the reliable path is: focus the element programmatically, press ArrowDown to open the listbox, type the filter text, then click the now-visible option from a fresh reference.",
+        "Clicking an 'Update' button on the Candidate Info panel has reproducibly crashed the tab to a blank page; skip Update entirely and click Next directly once every field validates, since Next both saves and advances without the crash. If the same crash still recurs elsewhere in the wizard with no confirmation email received, park rather than claim a submit succeeded.",
+        "The behavior is not board-predictable: one session can complete the whole multi-step wizard cleanly and then hit a genuine interactive image reCAPTCHA (not just a background badge) at the final Submit click. Never solve it; fill-and-park with a note that only the captcha click remains, since re-navigating away loses the wizard state.",
+    ],
     "comeet": [
         "The apply form is a same-page iframe on the comeet.com job listing (First/Last name, Email, Phone, Resume, Personal website, Cover Letter, Portfolio, Personal note); no visible captcha widget, so it looks fully accountless and headless-friendly.",
         "The Personal website field validates client-side and requires a full URL scheme; a bare domain like 'github.com/user' fails with 'Invalid web address' and blocks submit until a 'https://' prefix is added.",
@@ -337,6 +344,8 @@ def classify_ats(job: Job) -> str:
         return "bamboohr"
     if "comeet.com" in u:
         return "comeet"
+    if "dayforcehcm.com" in u:
+        return "dayforce"
     return job.ats.lower() or "unknown"
 
 
