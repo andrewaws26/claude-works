@@ -279,6 +279,10 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Submit itself is gated by an invisible session-verification bot check: a fully valid, fully filled form can bounce with 'session verification failed due to a human check error. Please refresh the page, then resubmit your application.' Refreshing and resubmitting (its own suggested remedy) can fail again the same way. Treat repeated failures of this specific message as automation/bot-score detection, not a solvable challenge: fill-and-park after one refresh-and-retry, do not loop resubmitting.",
         "The park form itself surfaces a fallback: a mailto link to the board's own '<slug>@applynow.io' address ('Email Your Resume'). Note that address for the human in the park record; do not auto-send outbound email on the candidate's behalf.",
     ],
+    "paycor": [
+        "The apply link redirects to the COMPANY'S OWN careers page with the job listing and apply flow embedded in an iframe, not to a paycor.com-branded page; screen the JD on that redirected domain.",
+        "Clicking Apply can surface a short pre-screen question block before any name/email/resume field, sometimes including a hard state-residency allowlist ('Do you reside in <state list>?') tied to where the employer is registered to hire. If the candidate's state is not on the list, this is an honest knockout: answering Yes would be dishonest, so treat it as a skip before any resume build, not a field to fill around.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -292,6 +296,7 @@ GENERAL_GOTCHAS: list[str] = [
     "Coordinates trap: the browser viewport width differs from the screenshot render width (~1.26x); never click at screenshot pixel coordinates, use locators or an element screenshot (1:1).",
     "Tab fragility: the driven browser can reset tabs between operations; never park a filled-but-unsubmitted form in a background tab, finish or record state promptly.",
     "Verify success by URL or page text (/thanks, ?success, /confirmation, 'Application Submitted'), never by the submit click returning.",
+    "A company's own careers page sometimes points Apply links at a third-party job BOARD listing (for example a wellfound.com company-jobs page) instead of hosting a native form. Some of these boards run a Cloudflare bot-check challenge that returns HTTP 403 on a plain navigation, with no form reachable and no known headless bypass; never attempt to solve it. Treat as an unreachable wall and park, checking the careers page first for an email-apply fallback (a 'send us your resume' mailto link) to note for the human, without auto-sending it.",
     "After filling, hunt for any aria-invalid=true field; that one field (usually a date or autocomplete) is the silent submit-blocker.",
 ]
 
@@ -358,6 +363,8 @@ def classify_ats(job: Job) -> str:
         return "comeet"
     if "dayforcehcm.com" in u:
         return "dayforce"
+    if "recruitingbypaycor.com" in u:
+        return "paycor"
     return job.ats.lower() or "unknown"
 
 
