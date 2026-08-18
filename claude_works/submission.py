@@ -203,6 +203,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The upload-size error node in the markup is a hidden template present on every form; do not read it as a real upload failure.",
     ],
     "workable": [
+        "Location metadata from the jobs API is not evidence: a posting has reported country 'United States' in the accounts jobs endpoint while the live application page header read a different country entirely. Read the location chips on the live page before staging or submitting, the same way the posting-api remote flag must be confirmed against the page header on other platforms.",
         "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
         "Masked DATE inputs (MM/DD/YYYY) need sequential typing (pressSequentially), not a single fill().",
         "Address requires SELECTING a structured autocomplete suggestion; free text fails validation. Some orgs render a plain free-text address instead: if no suggestion listbox appears after slow typing, free text is accepted, so do not wait on one.",
