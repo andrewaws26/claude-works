@@ -128,6 +128,30 @@ CONTACT_CENTER_SIGNALS: tuple[str, ...] = (
 )
 CONTACT_CENTER_TITLE = re.compile(r"architect|solutions? engineer|sales engineer")
 
+# Enterprise-delivery architect postings: partner and channel architects,
+# professional-services implementation architects, and packaged-platform
+# consulting seats. The title reads like engineering, but the work is rolling out
+# someone else's platform, so a candidate whose lane is building AI systems is
+# off-lane for all of them. Board harvests queue these in bulk (one run found them
+# filling nearly an entire ATS partition), which is what makes the pattern worth
+# a rail rather than a case-by-case screen. Gated on BOTH the architect or
+# field-engineer title shape AND an explicit partner / professional-services /
+# packaged-platform marker, so a genuine builder role that merely mentions
+# consulting is never caught.
+DELIVERY_ARCHITECT_TITLE = re.compile(r"solutions? architect|field engineer")
+DELIVERY_ARCHITECT_SIGNALS: tuple[str, ...] = (
+    "partner solution", "partner solutions", "channel partner", "gsi",
+    "system integrator", "systems integrator", "professional services",
+    "implementation partner", "appian", "anaplan", "salesforce", "servicenow",
+    "netsuite", " sap ", " erp ",
+)
+
+# Demo and sandbox tenants on public ATS hosts (for example a vendor's own
+# "demo" board). The postings parse like real reqs and survive every other rail,
+# but no employer is hiring against them, so each one costs a screen slot for
+# nothing. Matched on the exact URL org slug.
+SANDBOX_ORGS: frozenset[str] = frozenset({"leverdemo", "demo"})
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -175,7 +199,8 @@ PARK_REASONS: tuple[str, ...] = (
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap",
-    "comp-below-floor", "pre-sales", "contact-center",
+    "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
+    "demo-board",
 )
 
 # Compensation floor: when the TOP of a posting's salary range is an annual
@@ -262,6 +287,8 @@ def park_reason(
             cand_keys.add(role_key(_slug(segs[i]), " - ".join(segs[:i])))
         if cand_keys & set(screened_keys):
             return "already-screened"
+    if job.url_org_slug and job.url_org_slug in SANDBOX_ORGS:
+        return "demo-board"
     if excluded_company_match(job) is not None:
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:
@@ -290,6 +317,10 @@ def park_reason(
         return "pre-sales"
     if CONTACT_CENTER_TITLE.search(title) and any(s in blob for s in CONTACT_CENTER_SIGNALS):
         return "contact-center"
+    if DELIVERY_ARCHITECT_TITLE.search(title) and any(
+        s in title or s in blob for s in DELIVERY_ARCHITECT_SIGNALS
+    ):
+        return "delivery-architect"
     if REGION_TITLE.search(title):
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):

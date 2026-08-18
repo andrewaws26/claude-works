@@ -239,3 +239,33 @@ def test_learned_filters_park_model_training_onsite_lead():
     # lead hiding behind an IC title
     r3 = curation.curate([Job(title="Forward Deployed Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="you will be the technical lead mentoring engineers")])
     assert r3.parked and r3.parked[0][1] == "lead-in-body"
+
+
+def test_delivery_architect_titles_are_parked_but_ai_builder_architect_is_kept():
+    partner = Job(title="Partner Solutions Architect", company="Acme",
+                  url="https://job-boards.greenhouse.io/acme/jobs/8578847002",
+                  ats="greenhouse", location="Remote, United States", remote=True)
+    prosvc = Job(title="Solution Architect, Professional Services", company="Acme",
+                 url="https://job-boards.greenhouse.io/acme/jobs/8574466002",
+                 ats="greenhouse", location="Remote, United States", remote=True)
+    packaged = Job(title="Field Engineer", company="Acme",
+                   url="https://job-boards.greenhouse.io/acme/jobs/8470951002",
+                   ats="greenhouse", location="Remote, United States", remote=True,
+                   comp="Appian and ServiceNow rollouts for enterprise clients")
+    for job in (partner, prosvc, packaged):
+        res = curation.curate([job])
+        assert res.parked and res.parked[0][1] == "delivery-architect", job.title
+    # A builder role that happens to carry an architect title stays active.
+    builder = Job(title="Solutions Architect, AI Platform", company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True,
+                  comp="build agentic systems in Python with LLM APIs")
+    assert curation.curate([builder]).active
+
+
+def test_ats_demo_board_is_parked():
+    demo = Job(title="Solutions Architect", company="Lever Demo",
+               url="https://jobs.lever.co/leverdemo/12345678-90ab-cdef-1234-567890abcdef",
+               ats="lever", location="Remote, United States", remote=True)
+    res = curation.curate([demo])
+    assert res.parked and res.parked[0][1] == "demo-board"
