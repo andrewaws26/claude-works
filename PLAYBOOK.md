@@ -271,3 +271,11 @@ and finishing the submit is inside the honesty rails. The
 - Domain-specific hard requirements hide behind agent-flavored titles (for
   example deep EHR/FHIR integration experience behind an "AI deployment
   architect" title): the JD's must-have list decides, not the title.
+- A board whose postings span unrelated professions (attorneys, mechanical
+  engineers, growth marketers, executives, across a dozen cities) is an
+  aggregated or resold board, not one company's hiring plan. Confirm with the
+  live job page's JSON-LD `hiringOrganization` (name plus `sameAs` domain):
+  when the named employer's own site cannot plausibly be hiring the advertised
+  role (a small regional vendor fronting a high-comp, big-city, VC-backed
+  posting), the real employer is hidden. Skip it and record the evidence, so
+  curation stops re-queueing the same board.
