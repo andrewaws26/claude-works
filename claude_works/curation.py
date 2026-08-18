@@ -101,6 +101,33 @@ LEAD_BODY: tuple[str, ...] = (
     "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
 )
 
+# A "United States - Remote" location label can still hide a TIME-ZONE knockout in
+# the JD body ("Open to candidates located in the Central, Mountain, and Pacific
+# time zones"). The ONSITE list cannot catch it, because the posting really does
+# say "remote". Match the allowed-zone sentence itself and only park when the
+# candidate's own zone is absent from the zones the posting lists.
+TZ_SENTENCE = re.compile(
+    r"(?:located|based|reside|residing|work(?:ing)?|candidates?|open to|hours|"
+    r"available)[^.]{0,140}?\btime\s?zones?\b"
+)
+TZ_NAMED = re.compile(
+    r"\b(pacific|mountain|central|eastern|west coast|east coast|"
+    r"pst|pdt|mst|cst|est|edt|pt|mt|ct|et)\b"
+)
+CANDIDATE_TZ: tuple[str, ...] = ("eastern", "east coast", "est", "edt", "et")
+
+
+def is_time_zone_restricted(blob: str, allowed: tuple[str, ...] = CANDIDATE_TZ) -> bool:
+    """True when the posting names allowed time zones and none of them is ours."""
+    for match in TZ_SENTENCE.finditer(blob):
+        segment = match.group(0)
+        named = {m.group(0) for m in TZ_NAMED.finditer(segment)}
+        if not named:
+            continue
+        if not named & set(allowed):
+            return True
+    return False
+
 # Pre-sales "Solutions/Sales Engineer" roles dressed as builder titles: the lane
 # table gives "solutions engineer" high points on title alone, but a real chunk
 # of postings under that title are pure pre-sales (POV/RFP/deal-closing, reporting
@@ -311,6 +338,8 @@ def park_reason(
         return "model-training"
     if any(o in blob for o in ONSITE) and "remote" not in blob:
         return "onsite-hybrid"
+    if is_time_zone_restricted(blob):
+        return "time-zone-restricted"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):

@@ -269,3 +269,21 @@ def test_ats_demo_board_is_parked():
                ats="lever", location="Remote, United States", remote=True)
     res = curation.curate([demo])
     assert res.parked and res.parked[0][1] == "demo-board"
+
+
+def test_remote_posting_with_excluding_time_zone_list_is_parked():
+    # "United States - Remote" in the location, but the body limits the seat to
+    # zones the candidate is not in. The onsite list cannot catch this.
+    restricted = Job(title="Solutions Engineer, Mid-Market", company="Acme",
+                     url="https://job-boards.greenhouse.io/acme/jobs/7284384002",
+                     ats="greenhouse", location="United States - Remote", remote=True,
+                     comp="Open to candidates located in the Central, Mountain, and Pacific time zones.")
+    r = curation.curate([restricted])
+    assert r.parked and r.parked[0][1] == "time-zone-restricted"
+
+
+def test_time_zone_language_that_does_not_exclude_the_candidate_is_kept():
+    assert not curation.is_time_zone_restricted("you will collaborate across many time zones")
+    assert not curation.is_time_zone_restricted("must be located in the eastern or central time zone")
+    assert not curation.is_time_zone_restricted("remote across all us time zones, including eastern")
+    assert curation.is_time_zone_restricted("must reside in the pacific or mountain time zone")
