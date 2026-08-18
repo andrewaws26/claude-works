@@ -49,8 +49,9 @@ STANDARD_ANSWERS: dict[str, str] = {
 
 # ATSes whose forms this system can fill and submit without a human step.
 # (Workable: recaptcha is usually disabled. Hirebridge: completable after a
-# re-type email gate, no emailed code.)
-AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove"}
+# re-type email gate, no emailed code. SuccessFactors: account-wall but the
+# standard credentials clear it with no captcha or email code.)
+AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
 PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce"}
 
@@ -285,6 +286,14 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The apply link redirects to the COMPANY'S OWN careers page with the job listing and apply flow embedded in an iframe, not to a paycor.com-branded page; screen the JD on that redirected domain.",
         "Clicking Apply can surface a short pre-screen question block before any name/email/resume field, sometimes including a hard state-residency allowlist ('Do you reside in <state list>?') tied to where the employer is registered to hire. If the candidate's state is not on the list, this is an honest knockout: answering Yes would be dishonest, so treat it as a skip before any resume build, not a field to fill around.",
     ],
+    "successfactors": [
+        "Apply redirects to a SAP-hosted tenant (career<N>.sapsf.com) that account-walls the form, but the standard credentials clear it end to end with no captcha and no emailed code: create the account (email/retype-email/password/retype-password/first/last/country), accept the Data Privacy Consent dialog behind the 'Terms of Use' button (a standard hiring-pipeline notice, not a no-AI attestation), then submit.",
+        "If account creation returns 'Account Already Exists,' that is not a wall: sign in with the same standard credentials. The login scope can be broader than one job posting, so an account from an earlier application on the same tenant will already exist.",
+        "The candidate profile persists across applications on the same tenant: contact fields and 'How did you hear about this job?' auto-fill from a prior application, and My Documents can carry forward a STALE resume from a previous submission (even one correctly named for a different job). Always re-open the resume upload and attach the current tailored file before submitting; do not trust a pre-filled attachment.",
+        "Dropdowns are custom comboboxes, not native selects: a native select-option call fails. Click the combobox to open its listbox, then click the option by its menu-item text.",
+        "The only required screening fields are typically work authorization (Yes) and visa sponsorship (No); EEO/veteran/disability blocks carry no asterisk and are safe to leave at 'No Selection', an honest decline rather than a knockout.",
+        "Success is unambiguous: the page title changes to 'Successfully Applied to <Job Title>' and the body renders 'Your application has been sent. Thank you!' in place of the form.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -367,6 +376,8 @@ def classify_ats(job: Job) -> str:
         return "dayforce"
     if "recruitingbypaycor.com" in u:
         return "paycor"
+    if "sapsf.com" in u:
+        return "successfactors"
     return job.ats.lower() or "unknown"
 
 

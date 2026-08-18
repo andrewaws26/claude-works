@@ -99,6 +99,15 @@ def test_brightmove_auto_submits_with_account_creation_gotchas():
     assert any("Application Received" in n for n in plan.notes)
 
 
+def test_successfactors_auto_submits_with_account_creation_gotchas():
+    job = Job("AI Data Engineer", "Acme", "https://career41.sapsf.com/career?company=acmeinc")
+    assert submission.classify_ats(job) == "successfactors"
+    plan = submission.plan_submission(job)
+    assert plan.action == "auto_submit"
+    assert any("Account Already Exists" in n for n in plan.notes)
+    assert any("Your application has been sent" in n for n in plan.notes)
+
+
 def test_bamboohr_parks_at_recaptcha():
     job = Job("AI Platform Engineer", "Acme", "https://acme.bamboohr.com/careers/246")
     assert submission.classify_ats(job) == "bamboohr"
