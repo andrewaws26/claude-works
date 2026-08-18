@@ -195,6 +195,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Lever auto-parses the uploaded resume and may auto-fill current location and current company from it; leave those unless wrong. Upload the resume FIRST so the parser fills the standard fields for you.",
         "Custom questions live under cards[<uuid>][fieldN] input names, so enumerate by name; EEO is native selects.",
         "The captcha is risk-based per submission: a submission can land even after a challenge pops (a re-submit returning 'application already received' proves it), so verify with a fresh submit attempt before assuming a blocked application.",
+        "Browser-automation file upload can be restricted to allowed root directories, so a resume built outside the working tree is rejected as a file-access error: copy the PDF into the working tree first and upload from there.",
+        "Upload sequence that survives the captcha overlay: click the HIDDEN resume file input directly to open the file chooser (the hidden input is not intercepted the way the visible attach button is), then set the file.",
+        "Set text, select, and textarea values through the native value setter and then dispatch input and change, so the framework-backed form registers them.",
+        "Answering the EEO disability question, including the decline option, makes the signature and signature-date fields required; fill both or validation fails silently.",
+        "Definitive wall check before parking: click submit once and read the network log. A captcha-provider getcaptcha POST with no application POST, an empty captcha-response field, and a full-height challenge iframe together prove the challenge gates the submit.",
+        "The upload-size error node in the markup is a hidden template present on every form; do not read it as a real upload failure.",
     ],
     "workable": [
         "recaptcha is usually disabled, so usually auto-submittable; if an hCaptcha appears, park instead.",
