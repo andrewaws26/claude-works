@@ -51,7 +51,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # (Workable: recaptcha is usually disabled. Hirebridge: completable after a
 # re-type email gate, no emailed code. SuccessFactors: account-wall but the
 # standard credentials clear it with no captcha or email code.)
-AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors"}
+AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
 PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce"}
 
@@ -346,6 +346,13 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The only required screening fields are typically work authorization (Yes) and visa sponsorship (No); EEO/veteran/disability blocks carry no asterisk and are safe to leave at 'No Selection', an honest decline rather than a knockout.",
         "Success is unambiguous: the page title changes to 'Successfully Applied to <Job Title>' and the body renders 'Your application has been sent. Thank you!' in place of the form.",
     ],
+    "pinpointhq": [
+        "Standard form: name/email/phone, then a structured address (country, street, city, STATE, zip as separate fields, not one address string), resume upload (a label wraps a hidden file input), an optional personal-summary textarea, then org-specific screening questions, an optional EEO block, and a required data-processing consent checkbox before submit.",
+        "State and any multi-select 'how did you hear about us' field are react-select comboboxes, not native selects: a native select-option call fails. Click the field's placeholder text (not the combobox role element, which can intercept the click and time out), type the search text, and press Enter to commit the top match; for a true multi-select, press Escape after the last pick instead of leaving the listbox open.",
+        "Radio inputs and the resume upload button both reject a direct click on their own element because a sibling label sits on top for styling ('intercepts pointer events'). Click the label text instead of the input/button reference.",
+        "A boolean-gated follow-up question (for example a Yes/No revealing a URL field) can render the SAME follow-up field twice under two different answer indices after the radio click re-renders the form. Fill both with the identical answer rather than assuming the pre-click one is stale; verify which persist into the final state before submit.",
+        "Confirmation is a dedicated .../applications/thanks?token=... page reading 'Thanks. Your application was received successfully.' Match on that specific phrase, since the domain's own careers-page copy elsewhere uses similar wording.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -360,6 +367,7 @@ GENERAL_GOTCHAS: list[str] = [
     "Tab fragility: the driven browser can reset tabs between operations; never park a filled-but-unsubmitted form in a background tab, finish or record state promptly.",
     "Verify success by URL or page text (/thanks, ?success, /confirmation, 'Application Submitted'), never by the submit click returning.",
     "A company's own careers page sometimes points Apply links at a third-party job BOARD listing (for example a wellfound.com company-jobs page) instead of hosting a native form. Some of these boards run a Cloudflare bot-check challenge that returns HTTP 403 on a plain navigation, with no form reachable and no known headless bypass; never attempt to solve it. Treat as an unreachable wall and park, checking the careers page first for an email-apply fallback (a 'send us your resume' mailto link) to note for the human, without auto-sending it.",
+    "An apply link that resolves to a Google Form (forms.gle or a docs.google.com/forms URL) can redirect straight to a Google account sign-in page before any field renders, when the form owner restricted responses to signed-in users. That is a login wall to the candidate's real personal account, not an ATS candidate-account signup: the agent has no path to that password and should not attempt one. Park immediately without building any application artifact, and check the underlying job post for other requirements (for example a required screen-recording video) that would make the form unbuildable even without the login wall.",
     "After filling, hunt for any aria-invalid=true field; that one field (usually a date or autocomplete) is the silent submit-blocker.",
 ]
 
@@ -430,6 +438,8 @@ def classify_ats(job: Job) -> str:
         return "paycor"
     if "sapsf.com" in u:
         return "successfactors"
+    if "pinpointhq.com" in u:
+        return "pinpointhq"
     return job.ats.lower() or "unknown"
 
 

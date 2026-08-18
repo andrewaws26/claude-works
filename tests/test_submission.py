@@ -12,6 +12,7 @@ def test_classify_ats_from_url():
     assert submission.classify_ats(Job("X", "Acme", "https://jobs.lever.co/acme/x")) == "lever"
     assert submission.classify_ats(Job("X", "Acme", "https://acme.myworkdayjobs.com/x")) == "workday"
     assert submission.classify_ats(Job("X", "Acme", "https://example.com/careers")) == "unknown"
+    assert submission.classify_ats(Job("X", "Acme", "https://acme.pinpointhq.com/en/postings/1")) == "pinpointhq"
 
 
 def test_ashby_plan_auto_submits_without_human_step():
