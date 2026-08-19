@@ -309,3 +309,28 @@ def test_hybrid_only_org_is_parked(monkeypatch):
                 ats="ashby", location="Remote, United States", remote=True,
                 comp="build agentic systems in Python with LLM APIs")
     assert curation.curate([other]).active
+
+
+def test_railed_role_family_parks_the_next_segment_suffix():
+    # An org posted the same job under many segment suffixes; each rejection got
+    # its own role key, so the next suffix arrived unscreened. Once enough
+    # siblings share a title family, the family itself is the rail.
+    families = {("acmewidgets", curation.role_family("Applied Architect")): 8}
+    job = _job("Applied Architect, Startups", company="Acme Widgets")
+    res = curation.curate([job], railed_families=families)
+    assert res.parked and res.parked[0][1] == "railed-role-family"
+    # An unrelated family at the same org stays live.
+    other = _job("Product Engineer, Platform", company="Acme Widgets")
+    assert curation.curate([other], railed_families=families).active
+    # Below the threshold nothing is knocked out.
+    thin = {("acmewidgets", curation.role_family("Applied Architect")): 2}
+    assert curation.curate([job], railed_families=thin).active
+
+
+def test_role_family_ignores_single_word_bases():
+    # A one-word base ("Engineer") would knock out unrelated roles, so it never
+    # forms a family key.
+    assert curation.role_family("Engineer, Platform") == ""
+    assert curation.role_family("Applied Architect, Startups") == curation.role_family(
+        "Applied Architect, Commercial"
+    )

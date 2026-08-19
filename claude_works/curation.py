@@ -18,7 +18,7 @@ dependencies and the unit tests stay fast.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -239,7 +239,7 @@ PARK_REASONS: tuple[str, ...] = (
     "onsite-hybrid", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap",
     "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
-    "demo-board",
+    "demo-board", "railed-role-family",
 )
 
 # Compensation floor: when the TOP of a posting's salary range is an annual
@@ -290,8 +290,25 @@ def role_key(company_slug: str, title: str) -> tuple[str, str]:
     return (company_slug or "", re.sub(r"[^a-z0-9]", "", (title or "").lower())[:40])
 
 
+# A company that posts one job under many segment suffixes generates a new role
+# key per suffix, so exact-key screening never catches the next one. The family
+# is the title with its suffix removed.
+RAILED_FAMILY_MIN = 3
+
+
+def role_family(title: str) -> str:
+    """Title minus its segment suffix: "Applied Architect, Startups" -> the
+    family key for "Applied Architect". Empty when the base is a single word,
+    which is too coarse to knock out a whole family on."""
+    base = re.split(r"\s*[,(]", (title or "").strip())[0].strip()
+    return _slug(base) if len(base.split()) >= 2 else ""
+
+
 def park_reason(
-    job: Job, applied_slugs: set[str], screened_keys: set[tuple[str, str]] | frozenset = frozenset()
+    job: Job,
+    applied_slugs: set[str],
+    screened_keys: set[tuple[str, str]] | frozenset = frozenset(),
+    railed_families: Mapping[tuple[str, str], int] | None = None,
 ) -> str | None:
     """Return why a job should be parked, or ``None`` to keep it.
 
@@ -326,6 +343,19 @@ def park_reason(
             cand_keys.add(role_key(_slug(segs[i]), " - ".join(segs[:i])))
         if cand_keys & set(screened_keys):
             return "already-screened"
+    # Exact-key screening only catches the SAME title. Some orgs post one job
+    # under many segment suffixes ("Applied Architect, {Partnerships, Commercial,
+    # Industries, ...}"); each rejection is a distinct role key, so the next
+    # suffix arrives unscreened and burns another slot. Once a company has
+    # RAILED_FAMILY_MIN rejected siblings sharing a title family, the family
+    # itself is the rail. Parked jobs stay in the result, so an outlier is
+    # still recoverable by hand.
+    if railed_families:
+        fam = role_family(job.title)
+        if fam:
+            for org in (job.company_slug, job.url_org_slug):
+                if org and railed_families.get((org, fam), 0) >= RAILED_FAMILY_MIN:
+                    return "railed-role-family"
     if job.url_org_slug and job.url_org_slug in SANDBOX_ORGS:
         return "demo-board"
     if job.url_org_slug and job.url_org_slug in HYBRID_ONLY_ORGS:
@@ -415,20 +445,23 @@ def curate(
     jobs: Iterable[Job],
     applied_slugs: Iterable[str] | None = None,
     screened_keys: Iterable[tuple[str, str]] | None = None,
+    railed_families: Mapping[tuple[str, str], int] | None = None,
 ) -> CurationResult:
     """Partition ``jobs`` into a fit-ranked active set and a reasoned parked set.
 
     ``applied_slugs`` are normalized company slugs already in the ledger; matching
     jobs are parked as ``already-applied``. ``screened_keys`` are ``role_key``
     identities of roles a prior run screened and rejected; matching jobs are
-    parked as ``already-screened``. The active list is sorted by fit
+    parked as ``already-screened``. ``railed_families`` counts rejected siblings
+    per ``(company slug, role_family)``; a job whose family is at or above
+    ``RAILED_FAMILY_MIN`` is parked as ``railed-role-family``. The active list is sorted by fit
     descending so the caller can pop the strongest open match in O(1).
     """
     applied = set(applied_slugs or ())
     screened = set(screened_keys or ())
     result = CurationResult()
     for job in jobs:
-        reason = park_reason(job, applied, screened)
+        reason = park_reason(job, applied, screened, railed_families)
         if reason:
             result.parked.append((job, reason))
             result.counts[reason] = result.counts.get(reason, 0) + 1
