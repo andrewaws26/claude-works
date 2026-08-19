@@ -239,6 +239,9 @@ def test_learned_filters_park_model_training_onsite_lead():
     # lead hiding behind an IC title
     r3 = curation.curate([Job(title="Forward Deployed Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="you will be the technical lead mentoring engineers")])
     assert r3.parked and r3.parked[0][1] == "lead-in-body"
+    # bare "Hybrid - City" title parenthetical (board-harvest [R] tags can lie about remote)
+    r4 = curation.curate([Job(title="AI Engineer - AI Agents (Hybrid - San Francisco)", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", remote=True)])
+    assert r4.parked and r4.parked[0][1] == "onsite-hybrid"
 
 
 def test_delivery_architect_titles_are_parked_but_ai_builder_architect_is_kept():

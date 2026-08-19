@@ -95,6 +95,7 @@ ONSITE: tuple[str, ...] = (
     "on-site", "onsite", "in-office", "in office", "in person", "in-person",
     "days a week in", "days/week in", "days per week in", "relocate to",
     "must be located in", "hybrid work", "hybrid role", "hybrid schedule",
+    "hybrid - ", "(hybrid",
 )
 LEAD_BODY: tuple[str, ...] = (
     "technical lead", "team lead", "tech lead", "engineering lead", "lead engineer",
