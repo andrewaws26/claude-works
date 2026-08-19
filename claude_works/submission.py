@@ -61,6 +61,9 @@ PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "
 ATS_GOTCHAS: dict[str, list[str]] = {
     "ashby": [
         "Ashby labeled-radio gotcha: use locator.focus() then keyboard.press('Space').",
+        "Custom-question inputs are keyed by a raw identifier that can START WITH A DIGIT, which is an invalid CSS id selector: an id-hash selector throws a syntax error and aborts the whole batched fill mid-form. Address every custom question by attribute form (square-bracket id equals the quoted identifier) in both fill calls and in-page scripts.",
+        "The Location typeahead input carries no id and is not reliably reachable by filtering field-entry containers on their label text (that locator can time out). Select it by its combobox role instead, type the city, wait for the option list, click the option whose text is the full city, state, country string, and confirm by reading the input value back.",
+        "Conditional follow-up questions VANISH from the DOM once the upstream answer hides them: after answering the work-authorization question, the sponsorship radio group disappears from the field list while its selected radio remains in the checked-radio set. Audit answered state from the checked inputs, not from the visible field containers, or a verification pass will report an answered question as missing and re-click it.",
         "Resume is the LAST input[type=file] (id _systemfield_resume); the first file input is autofill-from-resume.",
         "Uploading the resume can trigger an autofill-parse re-render that WIPES already-typed text fields (Name/Email/free-text answers), so upload the resume FIRST, fill text fields after, and re-verify every input value right before submit; a 'Missing entry for required field' error on a field you filled means the parse wiped it.",
         "Location is a typeahead: type the city, then click the [role=option] matching 'City, State, Country'.",
