@@ -265,12 +265,32 @@ def test_delivery_architect_titles_are_parked_but_ai_builder_architect_is_kept()
                   comp="build agentic systems in Python with LLM APIs")
     assert curation.curate([builder]).active
     # The engineer-titled variant of the same seat, with no body text to screen
-    # on, is caught by the title shape alone.
+    # on, is caught by the title shape alone (as pre-sales, the segment-title rule
+    # that runs first, which is the more accurate reason for a go-to-market seat).
     partner_se = Job(title="Partner Solutions Engineer", company="Acme",
                      url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
                      ats="ashby", location="Remote, United States", remote=True)
     res_se = curation.curate([partner_se])
-    assert res_se.parked and res_se.parked[0][1] == "delivery-architect"
+    assert res_se.parked and res_se.parked[0][1] == "pre-sales"
+
+
+def test_segment_qualified_solutions_engineer_titles_are_parked_without_body_text():
+    # Board-summary rows carry only a title, so the body-gated pre-sales rule
+    # cannot reach a go-to-market seat. Segment and territory qualifiers on a
+    # solutions-engineer title are enough on their own.
+    for title in ("Enterprise Solutions Engineer", "Mid-Market Solutions Engineer",
+                  "Field Solutions Engineer, West", "Strategic Solutions Engineer"):
+        job = Job(title=title, company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True)
+        res = curation.curate([job])
+        assert res.parked and res.parked[0][1] == "pre-sales", title
+    # A builder-shaped title that merely contains the words stays active.
+    builder = Job(title="AI Solutions Engineer", company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True,
+                  comp="build agentic systems in Python and TypeScript with LLM APIs")
+    assert curation.curate([builder]).active
     # A solutions-engineer title without a partner marker is still a builder role.
     builder_se = Job(title="Solutions Engineer, AI", company="Acme",
                      url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",

@@ -143,6 +143,20 @@ PRESALES_SIGNALS: tuple[str, ...] = (
 )
 PRESALES_TITLE = re.compile(r"solutions? engineer|sales engineer")
 
+# Title-only pre-sales catch for board-summary rows that carry NO body text. The
+# body-gated rule above cannot reach them, so a go-to-market seat sails through:
+# two consecutive runs burned their only queued row on exactly this shape, one a
+# partner seat and one an enterprise pre-sales seat with an on-target-earnings
+# range and a single-metro location requirement. The qualifier words below are
+# sales territory and segment terms, and a role that has the candidate building
+# AI is never titled "Enterprise Solutions Engineer", so matching the title alone
+# is safe here and needs no body text.
+PRESALES_SEGMENT_TITLE = re.compile(
+    r"\b(enterprise|partner|channel|field|strategic|named|commercial|"
+    r"mid[ -]?market|smb|corporate|territory|pre-?sales|presales|"
+    r"customer-?facing)\b[\w ,/&-]{0,24}\bsolutions? engineers?\b"
+)
+
 # Contact-center / CCaaS architect roles: "Solutions Architect" postings whose body
 # is really telephony or contact-center platform consulting (Amazon Connect, Genesys,
 # Five9, CCaaS). Deep contact-center platform expertise is a hard domain gap, and
@@ -395,6 +409,8 @@ def park_reason(
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
+        return "pre-sales"
+    if PRESALES_SEGMENT_TITLE.search(title):
         return "pre-sales"
     if CONTACT_CENTER_TITLE.search(title) and any(s in blob for s in CONTACT_CENTER_SIGNALS):
         return "contact-center"
