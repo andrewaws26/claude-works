@@ -148,10 +148,14 @@ class Rails:
         "nation state", "nation-state",
     )
 
-    # Companies / tracks that must never be re-applied to (active interviews + caps).
+    # Companies / tracks that must never be re-applied to (active interviews + caps),
+    # plus specific defense contractors whose postings read clean on title and stack
+    # alone (a generic-sounding "AI Infrastructure Engineer" req) but whose business
+    # is excluded_domains-flagged on inspection - added once discovered so future
+    # runs skip them without re-researching the company each time.
     excluded_companies: tuple[str, ...] = (
         "rippling", "samsara", "mercor", "onedigital", "elevenlabs",
-        "scale ai", "axon", "humana",
+        "scale ai", "axon", "humana", "havocai",
     )
 
     def env_var_for(self, field_name: str) -> str:
