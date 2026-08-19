@@ -290,3 +290,22 @@ def test_time_zone_language_that_does_not_exclude_the_candidate_is_kept():
     assert not curation.is_time_zone_restricted("must be located in the eastern or central time zone")
     assert not curation.is_time_zone_restricted("remote across all us time zones, including eastern")
     assert curation.is_time_zone_restricted("must reside in the pacific or mountain time zone")
+
+
+def test_hybrid_only_org_is_parked(monkeypatch):
+    # The board fetch showed no posting with workplaceType "Remote", so the org
+    # was recorded as hybrid-only. Every later req from it parks without a screen,
+    # even when the posting advertises itself as remote.
+    monkeypatch.setattr(curation, "HYBRID_ONLY_ORGS", frozenset({"acmeinfra"}))
+    sibling = Job(title="Solutions Architect, AI Platform", company="Acme Infra",
+                  url="https://jobs.ashbyhq.com/acmeinfra/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True,
+                  comp="build agentic systems in Python with LLM APIs")
+    res = curation.curate([sibling])
+    assert res.parked and res.parked[0][1] == "hybrid-only-org"
+    # An org that is not in the set is unaffected by the rule.
+    other = Job(title="Solutions Architect, AI Platform", company="Other",
+                url="https://jobs.ashbyhq.com/other/12345678-90ab-cdef-1234-567890abcdef",
+                ats="ashby", location="Remote, United States", remote=True,
+                comp="build agentic systems in Python with LLM APIs")
+    assert curation.curate([other]).active

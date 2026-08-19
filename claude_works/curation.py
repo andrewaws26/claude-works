@@ -180,6 +180,17 @@ DELIVERY_ARCHITECT_SIGNALS: tuple[str, ...] = (
 # nothing. Matched on the exact URL org slug.
 SANDBOX_ORGS: frozenset[str] = frozenset({"leverdemo", "demo"})
 
+# Orgs whose ENTIRE public board was verified hybrid or onsite. Screening a board
+# is cheaper than screening its reqs one at a time: an ATS board endpoint returns
+# every open posting in the same fetch that answers the one you asked about, so a
+# single scan for `workplaceType == "Remote"` decides the whole org. When no US
+# posting on the board carries that value, every future row the harvesters produce
+# from that org is a location rail regardless of its title or its remote flag, and
+# re-screening each sibling req costs one wasted fire apiece.
+# Populate at runtime from verified boards; a single genuinely-remote posting
+# disqualifies an org from this set. Matched on the exact URL org slug.
+HYBRID_ONLY_ORGS: frozenset[str] = frozenset()
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -317,6 +328,8 @@ def park_reason(
             return "already-screened"
     if job.url_org_slug and job.url_org_slug in SANDBOX_ORGS:
         return "demo-board"
+    if job.url_org_slug and job.url_org_slug in HYBRID_ONLY_ORGS:
+        return "hybrid-only-org"
     if excluded_company_match(job) is not None:
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:
