@@ -202,14 +202,34 @@ def applied_role_keys(path: Path | None = None) -> set[str]:
     return keys
 
 
+def applied_role_pairs(path: Path | None = None) -> set[tuple[str, str]]:
+    """Ledger roles as ``(company slug, title slug)`` pairs, for URL-independent de-dup."""
+    pairs: set[tuple[str, str]] = set()
+    for a in load_applications(path)["applications"]:
+        pairs.add((_slug(a.get("company", "")), _slug(a.get("role", ""))))
+    return pairs
+
+
 def dedupe_jobs(jobs: Iterable[Job], path: Path | None = None) -> list[Job]:
-    """Drop jobs whose role is already in the ledger; de-dup the input by role_key."""
+    """Drop jobs whose role is already in the ledger; de-dup the input by role.
+
+    Two independent identities are checked, because either one alone leaks. The
+    ``role_key`` is URL-derived, so the same role re-harvested from a different
+    source (an aggregator link one day, the company's own board the next) gets a
+    fresh key and re-enters the queue as if it were new, costing a full screening
+    pass on a role that was already decided. The ``(company slug, title slug)``
+    pair catches that. It stays role-level: the same company with a DIFFERENT
+    title still passes through, which is deliberate.
+    """
     seen = applied_role_keys(path)
+    seen_pairs = applied_role_pairs(path)
     out: list[Job] = []
     for j in jobs:
         rk = j.role_key
-        if rk in seen:
+        pair = (j.company_slug, _slug(j.title))
+        if rk in seen or pair in seen_pairs:
             continue
         seen.add(rk)
+        seen_pairs.add(pair)
         out.append(j)
     return out

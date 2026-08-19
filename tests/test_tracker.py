@@ -70,6 +70,28 @@ def test_dedupe_jobs_drops_roles_already_in_ledger(tmp_path):
     assert [j.role_key for j in out] == [fresh.role_key]
 
 
+def test_dedupe_jobs_drops_same_role_re_harvested_under_a_new_url(tmp_path):
+    """A decided role coming back from a different source must not re-enter the queue."""
+    ledger = tmp_path / "applications.json"
+    tracker.record_application(
+        Application(company="The Agency Fund", role="Forward Deployed Engineer",
+                    status="skipped-rail",
+                    apply_url="https://example.com/aggregator/listing/1"),
+        path=ledger,
+    )
+
+    # Same role, this time straight off the company board: a brand new role_key.
+    reharvested = Job(title="Forward Deployed Engineer", company="the agency fund",
+                      url="https://jobs.ashbyhq.com/the%20agency%20fund/"
+                          "700573a9-3c7c-4257-86ba-94561211e5e6")
+    other_role = Job(title="AI Engineer", company="The Agency Fund",
+                     url="https://jobs.ashbyhq.com/the%20agency%20fund/"
+                         "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+
+    out = tracker.dedupe_jobs([reharvested, other_role], path=ledger)
+    assert [j.title for j in out] == ["AI Engineer"]
+
+
 def test_queue_jobs_parses_label_and_status(tmp_path):
     queue = tmp_path / "top300_jobs.json"
     queue.write_text(json.dumps([
