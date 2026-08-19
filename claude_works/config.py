@@ -155,7 +155,7 @@ class Rails:
     # runs skip them without re-researching the company each time.
     excluded_companies: tuple[str, ...] = (
         "rippling", "samsara", "mercor", "onedigital", "elevenlabs",
-        "scale ai", "axon", "humana", "havocai",
+        "scale ai", "axon", "humana", "havocai", "brainco",
     )
 
     def env_var_for(self, field_name: str) -> str:
