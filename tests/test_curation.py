@@ -264,6 +264,19 @@ def test_delivery_architect_titles_are_parked_but_ai_builder_architect_is_kept()
                   ats="ashby", location="Remote, United States", remote=True,
                   comp="build agentic systems in Python with LLM APIs")
     assert curation.curate([builder]).active
+    # The engineer-titled variant of the same seat, with no body text to screen
+    # on, is caught by the title shape alone.
+    partner_se = Job(title="Partner Solutions Engineer", company="Acme",
+                     url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                     ats="ashby", location="Remote, United States", remote=True)
+    res_se = curation.curate([partner_se])
+    assert res_se.parked and res_se.parked[0][1] == "delivery-architect"
+    # A solutions-engineer title without a partner marker is still a builder role.
+    builder_se = Job(title="Solutions Engineer, AI", company="Acme",
+                     url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                     ats="ashby", location="Remote, United States", remote=True,
+                     comp="build agentic systems in Python with LLM APIs")
+    assert curation.curate([builder_se]).active
 
 
 def test_ats_demo_board_is_parked():

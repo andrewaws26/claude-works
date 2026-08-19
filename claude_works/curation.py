@@ -166,7 +166,15 @@ CONTACT_CENTER_TITLE = re.compile(r"architect|solutions? engineer|sales engineer
 # field-engineer title shape AND an explicit partner / professional-services /
 # packaged-platform marker, so a genuine builder role that merely mentions
 # consulting is never caught.
-DELIVERY_ARCHITECT_TITLE = re.compile(r"solutions? architect|field engineer")
+# The title may say "solutions ENGINEER" rather than architect: a partner
+# enablement seat under a sales department reads as a builder title until the
+# body shows the travel load and the packaged-platform stack. Board-summary
+# rows carry no body text, so the pre-sales body filter cannot reach them and
+# the title shape has to. Widening it stays safe because the signal gate below
+# still requires an explicit partner or professional-services marker.
+DELIVERY_ARCHITECT_TITLE = re.compile(
+    r"solutions? architect|solutions? engineer|field engineer"
+)
 DELIVERY_ARCHITECT_SIGNALS: tuple[str, ...] = (
     "partner solution", "partner solutions", "channel partner", "gsi",
     "system integrator", "systems integrator", "professional services",
