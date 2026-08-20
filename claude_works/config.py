@@ -156,6 +156,7 @@ class Rails:
     excluded_companies: tuple[str, ...] = (
         "rippling", "samsara", "mercor", "onedigital", "elevenlabs",
         "scale ai", "axon", "humana", "havocai", "brainco",
+        "second front systems", "arcfield", "istari digital",
     )
 
     def env_var_for(self, field_name: str) -> str:
