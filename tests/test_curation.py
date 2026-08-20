@@ -367,3 +367,37 @@ def test_role_family_ignores_single_word_bases():
     assert curation.role_family("Applied Architect, Startups") == curation.role_family(
         "Applied Architect, Commercial"
     )
+
+
+def test_explicit_in_office_mandate_outranks_a_remote_label():
+    # Harvest rows get hand-stamped "(Remote US)" in bulk. That word in the blob
+    # disables the plain onsite rule, so an explicit mandate has to park on its own.
+    mandate = Job(title="Forward Deployed Engineer (Remote US)", company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote US", remote=True,
+                  comp="This role requires you to work Monday to Thursday in our New York office")
+    r = curation.curate([mandate])
+    assert r.parked and r.parked[0][1] == "onsite-hybrid"
+
+    in_person = Job(title="Software Engineer, Applied AI (Remote US)", company="Acme",
+                    url="https://jobs.ashbyhq.com/a/22345678-90ab-cdef-1234-567890abcdef",
+                    ats="ashby", location="Remote US", remote=True,
+                    comp="This role is in-person in San Francisco")
+    r2 = curation.curate([in_person])
+    assert r2.parked and r2.parked[0][1] == "onsite-hybrid"
+
+
+def test_office_anchored_location_beats_the_remote_flag():
+    job = Job(title="Forward Deployed Engineer", company="Acme",
+              url="https://jobs.ashbyhq.com/a/32345678-90ab-cdef-1234-567890abcdef",
+              ats="ashby", location="NYC Office", remote=True)
+    r = curation.curate([job])
+    assert r.parked and r.parked[0][1] == "office-anchored-location"
+
+
+def test_genuine_remote_row_survives_the_new_onsite_rules():
+    job = Job(title="Forward Deployed Engineer", company="Acme",
+              url="https://jobs.ashbyhq.com/a/42345678-90ab-cdef-1234-567890abcdef",
+              ats="ashby", location="Remote, United States", remote=True)
+    r = curation.curate([job])
+    assert r.active and not r.parked

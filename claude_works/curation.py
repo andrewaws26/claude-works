@@ -97,6 +97,32 @@ ONSITE: tuple[str, ...] = (
     "must be located in", "hybrid work", "hybrid role", "hybrid schedule",
     "hybrid - ", "(hybrid",
 )
+# An explicit in-office MANDATE outranks any remote label. Harvest rows are often
+# hand-stamped "(Remote US)" in bulk without verification, and that single word in
+# the blob disables the ONSITE rule below (which requires "remote" to be absent).
+# These phrases are mandates, not location noise, so they park a row even when it
+# also claims remote. Learned from a batch where every hand-labeled "Remote US" row
+# turned out to be a city-anchored seat.
+STRONG_ONSITE: tuple[str, ...] = (
+    "in-office mandate", "in office mandate", "is in-person in", "is in person in",
+    "role is in-person", "role is in person", "teams are in-person",
+    "teams are in person", "all teams are in", "requires you to work",
+    "days a week in", "days/week in", "days per week in",
+)
+
+# A location string that names an OFFICE while the row claims remote is a
+# contradiction ("NYC Office" with a remote flag set). The office token is the
+# structured field the ATS controls, so it wins over the boolean.
+OFFICE_LOCATION: tuple[str, ...] = (
+    "office", "hq", "headquarters", "onsite", "on-site", "in-office",
+)
+
+
+def office_anchored(location: str) -> bool:
+    """True when the location field itself names an office rather than a region."""
+    return any(tok in (location or "").lower() for tok in OFFICE_LOCATION)
+
+
 LEAD_BODY: tuple[str, ...] = (
     "technical lead", "team lead", "tech lead", "engineering lead", "lead engineer",
     "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
@@ -258,7 +284,7 @@ CHANNEL_BONUS: dict[str, int] = {
 PARK_REASONS: tuple[str, ...] = (
     "already-applied", "already-screened", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
-    "onsite-hybrid", "off-lane", "non-us-region", "non-us-location", "non-us-only",
+    "onsite-hybrid", "office-anchored-location", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap",
     "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
     "demo-board", "railed-role-family",
@@ -402,6 +428,10 @@ def park_reason(
         return "lead-in-body"
     if any(m in blob for m in MODEL_TRAINING):
         return "model-training"
+    if any(o in blob for o in STRONG_ONSITE):
+        return "onsite-hybrid"
+    if job.remote and office_anchored(job.location):
+        return "office-anchored-location"
     if any(o in blob for o in ONSITE) and "remote" not in blob:
         return "onsite-hybrid"
     if is_time_zone_restricted(blob):
