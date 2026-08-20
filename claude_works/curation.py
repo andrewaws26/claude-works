@@ -108,6 +108,18 @@ STRONG_ONSITE: tuple[str, ...] = (
     "role is in-person", "role is in person", "teams are in-person",
     "teams are in person", "all teams are in", "requires you to work",
     "days a week in", "days/week in", "days per week in",
+    # A mandate is usually stated once, in the closing paragraph, and the exact
+    # wording varies more than the list above assumed. Two misses worth encoding:
+    # "we work together in person five days a week FROM our offices" (the
+    # preposition is "from", so the "days a week in" entries never matched) and
+    # "a fully in-person team in <city>" (not "teams are in-person"). Relocation
+    # support offered as a perk is the same signal phrased as a benefit.
+    "in person five days", "in-person five days",
+    "in person 5 days", "in-person 5 days",
+    "days a week from", "days/week from", "days per week from",
+    "fully in-person", "fully in person",
+    "work together in person", "in-person team in", "in person team in",
+    "relocation support for those moving",
 )
 
 # A location string that names an OFFICE while the row claims remote is a
