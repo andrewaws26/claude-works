@@ -201,7 +201,19 @@ PRESALES_TITLE = re.compile(r"solutions? engineer|sales engineer")
 PRESALES_SEGMENT_TITLE = re.compile(
     r"\b(enterprise|partner|channel|field|strategic|named|commercial|"
     r"mid[ -]?market|smb|corporate|territory|pre-?sales|presales|"
-    r"customer-?facing)\b[\w ,/&-]{0,24}\bsolutions? engineers?\b"
+    r"customer-?facing|customer)\b[\w ,/&-]{0,24}\bsolutions? engineers?\b"
+)
+
+# Same gap, SUFFIX shape: a regional territory tag trailing the title instead of
+# leading it (e.g. "Solutions Engineer - Central"). The leading-qualifier regex
+# above only checks text BEFORE "solutions engineer", so a trailing region tag
+# sails through. Compass-direction and region words after the title carry the
+# same territory-segment signal as the leading list, just on the other side of
+# the noun phrase.
+PRESALES_REGION_SUFFIX = re.compile(
+    r"\bsolutions? engineers?\b[\w ,/&-]{0,24}\b(central|east|west|north|south|"
+    r"northeast|northwest|southeast|southwest)\b"
+    r"(?![\w ,&-]{0,20}(?:europe|asia|africa|america|pacific|atlantic))"
 )
 
 # Contact-center / CCaaS architect roles: "Solutions Architect" postings whose body
@@ -269,7 +281,7 @@ REGION_TITLE = re.compile(
     r"united kingdom|ireland|germany|france|spain|italy|poland|netherlands|"
     r"japan|singapore|australia|new zealand|brazil|mexico|canada|korea|israel|"
     r"mena|ksa|uae|saudi arabia|india|philippines|portugal|romania|vietnam|"
-    r"indonesia|colombia|argentina|"
+    r"indonesia|colombia|argentina|ukraine|ukrainian|czech|czechia|hungary|bulgaria|serbia|croatia|lithuania|latvia|estonia|pakistan|bangladesh|egypt|nigeria|kenya|turkey|taiwan|thailand|malaysia|chile|peru|uruguay|costa rica|"
     r"middle east|africa|eu|uk)\b|[a-z]+[- ]speaking",
 )
 
@@ -461,7 +473,7 @@ def park_reason(
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
         return "pre-sales"
-    if PRESALES_SEGMENT_TITLE.search(title):
+    if PRESALES_SEGMENT_TITLE.search(title) or PRESALES_REGION_SUFFIX.search(title):
         return "pre-sales"
     if CONTACT_CENTER_TITLE.search(title) and any(s in blob for s in CONTACT_CENTER_SIGNALS):
         return "contact-center"
