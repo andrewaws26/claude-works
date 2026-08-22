@@ -95,7 +95,7 @@ ONSITE: tuple[str, ...] = (
     "on-site", "onsite", "in-office", "in office", "in person", "in-person",
     "days a week in", "days/week in", "days per week in", "relocate to",
     "must be located in", "hybrid work", "hybrid role", "hybrid schedule",
-    "hybrid - ", "(hybrid",
+    "hybrid - ", "(hybrid", "in an office", "in an office every day",
 )
 # An explicit in-office MANDATE outranks any remote label. Harvest rows are often
 # hand-stamped "(Remote US)" in bulk without verification, and that single word in
@@ -120,6 +120,15 @@ STRONG_ONSITE: tuple[str, ...] = (
     "fully in-person", "fully in person",
     "work together in person", "in-person team in", "in person team in",
     "relocation support for those moving",
+    # The mandate can also hide in the "you will like working here if" culture
+    # bullets and carry none of the keywords above. One posting said "you like
+    # being in an office every day": the article "an" defeats both "in office"
+    # and "in-office", and the description never used the words onsite, hybrid,
+    # or remote at all, so the only other signal was the board API remote flag.
+    # Match the cadence phrase rather than the preposition.
+    "office every day", "office every single day",
+    "every day in the office", "every day in an office",
+    "in an office every", "in the office every day",
 )
 
 # A location string that names an OFFICE while the row claims remote is a
