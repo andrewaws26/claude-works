@@ -304,6 +304,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "The whole form (fields, radios, uploaded-resume ref) persists in localStorage per browser profile, so a reload restores everything (accept the beforeunload dialog). When parking, export the long-form answers to a file; the human's own browser starts empty.",
         "Question textareas can carry a tiny maxlength and fill() silently truncates mid-word at the cap; re-read value.length after filling and rewrite a complete answer that fits.",
         "When Turnstile-walled, re-read the description body before parking: some orgs state a direct email application path (send resume plus a short note to a recruiting address with a given subject line). Surface that email path first in the park record since it skips the robot wall and follows the org's own stated process; the send itself stays with the human.",
+        "Every hosted posting page (jobs.workable.com/view/<slug>/...) links an alternate markdown rendering in its initial HTML head (a link tag pointing at jobs.workable.com/jobs/<job-uuid>.md). A plain HTTP fetch of that URL returns the full job description as clean markdown, no JS render needed, which screens the JD far faster than parsing the single-page-app HTML or opening a browser just to read the posting.",
     ],
     "hirebridge": [
         "Account email-gate first: enter the email, then RE-TYPE it to confirm (not an emailed code); proceeds to QuickApply.",
