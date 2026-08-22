@@ -244,6 +244,25 @@ def test_learned_filters_park_model_training_onsite_lead():
     assert r4.parked and r4.parked[0][1] == "onsite-hybrid"
 
 
+def test_ic_leveling_code_does_not_hide_staff_scope():
+    """A leveling code in the title says nothing; the body's scope sentence does."""
+    url = "https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef"
+    for body in (
+        "you operate at staff scope on the hardest problems",
+        "we are hiring a technical leader, not just a strong individual contributor",
+    ):
+        res = curation.curate([Job(title="Agent Engineer [IC4]", company="Acme",
+                                   url=url, ats="ashby", remote=True, comp=body)])
+        assert res.parked and res.parked[0][1] == "lead-in-body", body
+
+    # The same leveling code with an ordinary senior-IC body stays in lane.
+    kept = curation.curate([Job(title="Agent Engineer [IC4]", company="Acme", url=url,
+                                ats="ashby", remote=True,
+                                comp="build multi-step agent loops in typescript and python")])
+    assert kept.parked == []
+    assert kept.active
+
+
 def test_delivery_architect_titles_are_parked_but_ai_builder_architect_is_kept():
     partner = Job(title="Partner Solutions Architect", company="Acme",
                   url="https://job-boards.greenhouse.io/acme/jobs/8578847002",

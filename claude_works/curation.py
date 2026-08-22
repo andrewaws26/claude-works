@@ -144,9 +144,17 @@ def office_anchored(location: str) -> bool:
     return any(tok in (location or "").lower() for tok in OFFICE_LOCATION)
 
 
+# A leveling code in the title (IC4, L5, E5) carries no scope information: a
+# posting titled "Agent Engineer [IC4]" can still say, three paragraphs down,
+# "we are hiring a technical leader, not just a strong individual contributor"
+# and "you operate at staff scope". The scope sentence in the body is the real
+# signal, so the phrases below are matched against the JD text, not the title.
+# These are plain substring tests, so a summariser must not paste the literal
+# phrases into a row's text even to negate them.
 LEAD_BODY: tuple[str, ...] = (
     "technical lead", "team lead", "tech lead", "engineering lead", "lead engineer",
     "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
+    "staff scope", "not just a strong individual contributor", "technical leader, not just",
 )
 
 # A "United States - Remote" location label can still hide a TIME-ZONE knockout in
