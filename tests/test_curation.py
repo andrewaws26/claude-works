@@ -146,6 +146,13 @@ def test_scientist_and_phd_are_parked_advanced_degree():
     assert res2.parked and res2.parked[0][1] == "advanced-degree"
 
 
+def test_phd_negated_does_not_park():
+    # A row noting the ABSENCE of a PhD ask ("no PhD gate") must not trip the
+    # bare "phd" substring check the way the affirmative case above does.
+    res = curation.curate([_job("AI Engineer", company="Acme (no PhD gate)")])
+    assert res.active and res.active[0][0].title == "AI Engineer"
+
+
 def test_non_us_only_is_parked():
     res = curation.curate([_job("AI Engineer", location="London, United Kingdom", remote=False)])
     assert res.parked and res.parked[0][1] == "non-us-only"

@@ -83,6 +83,13 @@ ADVANCED_DEGREE: tuple[str, ...] = (
     "ms or phd", "graduate degree", "advanced degree", "requires a phd",
 )
 
+# A row noting the ABSENCE of a PhD ask (e.g. a summariser writing "no PhD gate"
+# as a positive signal) can false-positive on the bare "phd" substring above.
+# These are plain substring tests, so a summariser must not paste "phd" into a
+# row's text even to negate it - this regex is a backstop, not a license to.
+ADVANCED_DEGREE_NEGATED = re.compile(
+    r"\bno\b\W+(?:\w+\W+){0,2}phd|phd\W+(?:\w+\W+){0,2}not required")
+
 # Learned from runtime skips (each skip means more like it are queued): model-training
 # / research engineering (the candidate builds ON models, not trains them), onsite/hybrid
 # requirements (candidate is remote-only), and lead/over-level roles hiding behind an IC
@@ -463,7 +470,9 @@ def park_reason(
     # automated run would spend a screen slot on a req nobody is hiring against.
     if "evergreen" in title:
         return "evergreen-posting"
-    if "scientist" in title or any(d in blob for d in ADVANCED_DEGREE):
+    if "scientist" in title or any(
+        d in blob for d in ADVANCED_DEGREE if not (d == "phd" and ADVANCED_DEGREE_NEGATED.search(blob))
+    ):
         return "advanced-degree"
     if any(p in blob for p in LEAD_BODY):
         return "lead-in-body"
