@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # standard credentials clear it with no captcha or email code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -424,6 +424,11 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "A boolean-gated follow-up question (for example a Yes/No revealing a URL field) can render the SAME follow-up field twice under two different answer indices after the radio click re-renders the form. Fill both with the identical answer rather than assuming the pre-click one is stale; verify which persist into the final state before submit.",
         "Confirmation is a dedicated .../applications/thanks?token=... page reading 'Thanks. Your application was received successfully.' Match on that specific phrase, since the domain's own careers-page copy elsewhere uses similar wording.",
     ],
+    "gnahiring": [
+        "State/Province and any 'how did you hear about us' field are old-API react-select comboboxes ('.Select-control' / '.Select-arrow-zone' classes, not the newer 'select__container' family): a direct click on the combobox element times out fighting its own placeholder div for pointer events. Click the small arrow-zone icon next to the input instead, then click the revealed option by role and name.",
+        "A reCAPTCHA v2 'I'm not a robot' checkbox can appear inside an iframe ONLY after 'Submit Application' is clicked, with no earlier sign of it anywhere in the form. There is no way to pre-screen a posting as captcha-gated; fill the whole form first, and treat the reveal at submit time as the wall. Per the never-solve-captcha rule, park with everything already filled so the human step is just the checkbox.",
+        "'How did you hear about us' option lists on this platform are hand-picked per tenant and often omit common answers like LinkedIn; selecting 'Other' reveals a required free-text 'Please Specify Source' field.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -511,6 +516,8 @@ def classify_ats(job: Job) -> str:
         return "successfactors"
     if "pinpointhq.com" in u:
         return "pinpointhq"
+    if "gnahiring.com" in u:
+        return "gnahiring"
     return job.ats.lower() or "unknown"
 
 
