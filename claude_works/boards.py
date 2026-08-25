@@ -31,7 +31,7 @@ import html
 import json
 import re
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from html.parser import HTMLParser
 from typing import Any
 
@@ -99,6 +99,22 @@ def html_to_text(fragment: str) -> str:
 # Per-ATS board sweeps
 # --------------------------------------------------------------------------- #
 
+def ashby_is_remote(posting: Mapping[str, Any]) -> bool:
+    """True only when an Ashby posting is genuinely remote.
+
+    Ashby exposes two location fields and they disagree constantly. ``isRemote``
+    is set to true for HYBRID postings as well, so trusting it queues
+    city-anchored roles as remote and the whole screen is wasted downstream.
+    ``workplaceType`` is the authoritative one: "Remote", "Hybrid", or "OnSite".
+    Prefer it whenever the board returns it, and fall back to ``isRemote`` only
+    for the older payloads that omit it.
+    """
+    workplace = str(posting.get("workplaceType") or "").strip().lower()
+    if workplace:
+        return workplace == "remote"
+    return bool(posting.get("isRemote", False))
+
+
 def ashby_board_jobs(org: str, fetch: Fetcher = _get_json) -> list[Job]:
     doc = fetch(f"https://api.ashbyhq.com/posting-api/job-board/{org}")
     jobs: list[Job] = []
@@ -112,7 +128,7 @@ def ashby_board_jobs(org: str, fetch: Fetcher = _get_json) -> list[Job]:
             url=str(url),
             source=f"boards/ashby/{org}",
             location=str(j.get("location") or ""),
-            remote=bool(j.get("isRemote", False)),
+            remote=ashby_is_remote(j),
             comp=str((j.get("compensation") or {}).get("compensationTierSummary") or ""),
             ats="Ashby",
         ))
@@ -158,6 +174,33 @@ def lever_board_jobs(org: str, fetch: Fetcher = _get_json) -> list[Job]:
             ats="Lever",
         ))
     return jobs
+
+
+# An ATS "company" board that is really a recruiting marketplace: hundreds of
+# postings that belong to OTHER employers, reposted under the marketplace's own
+# org slug. Applying through one means the real employer is hidden until after a
+# recruiter screen, which is a standing skip. The tell is scale plus spread, not
+# any single posting: a genuine company of the size implied by 200+ open reqs
+# does not also spread them across dozens of unrelated cities.
+AGGREGATOR_MIN_POSTINGS = 200
+AGGREGATOR_MIN_LOCATIONS = 20
+
+
+def looks_like_aggregator_board(jobs: list[Job],
+                                min_postings: int = AGGREGATOR_MIN_POSTINGS,
+                                min_locations: int = AGGREGATOR_MIN_LOCATIONS) -> bool:
+    """True when a board's shape says marketplace rather than employer.
+
+    Checked on the board as a whole, before any role is scored, so a marketplace
+    costs one sweep instead of one wasted screen per posting it contributes.
+    Both conditions must hold: a large employer really can post 200 reqs, and a
+    small distributed startup really can span 20 cities, but the combination of
+    both is the marketplace signature.
+    """
+    if len(jobs) < min_postings:
+        return False
+    locations = {j.location.strip().lower() for j in jobs if j.location.strip()}
+    return len(locations) >= min_locations
 
 
 _BOARD_FNS: dict[str, Callable[[str, Fetcher], list[Job]]] = {

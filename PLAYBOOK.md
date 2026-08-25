@@ -18,15 +18,40 @@ An ATS `isRemote=true` flag is NOT proof of remote. Boards set it while the JD
 body says "N days/week in office." ALWAYS read the body for an in-office
 requirement and an in-office knockout question before building anything.
 
-- AUTHORITATIVE check on Ashby: the application-page header has a structured
-  **"Location Type"** field that reads literally Remote / Hybrid / Onsite.
-  Trust THIS over the posting-api `isRemote` flag, which is unreliable in both
-  directions. Only a header of "Remote" clears a remote-first filter.
+- AUTHORITATIVE check on Ashby, and it needs NO browser: the posting-api board
+  response already carries **`workplaceType`** ("Remote" / "Hybrid" / "OnSite")
+  next to `isRemote` on every job object. `isRemote` is not merely noisy, it
+  means something else: it is a not-strictly-onsite flag that is true for Hybrid
+  and Remote alike, so `isRemote=true` carries almost no information. Only
+  `workplaceType == "Remote"` clears a remote-first filter; treat "Hybrid" and
+  "OnSite" as the location rail, and treat a missing value as unknown (fall back
+  to the JD body and the application page's "Location Type" header).
+- Put that check in the code that WRITES the queue row, not only in the screen
+  that reads it. A remote rule that lives only in a playbook gets re-broken,
+  because the row is stamped remote by a harvester long before any applying
+  agent reads the rule. `boards.ashby_is_remote` is the shared helper here.
 - A required knockout button like "Are you willing to join us in office
   Mon/Tue/Thu?" cannot be honestly answered Yes by a remote-only candidate:
   skip the role (record it with a rail reason), never answer dishonestly.
 - A queue fit score can be inflated because it trusted the same bad flag, so
   re-screen on the live page before spending a resume build.
+
+## Aggregator boards: an org slug is not proof of an employer
+
+A recruiting MARKETPLACE can hold its own ATS org slug and repost other
+companies' reqs under it, so the posting reads like a normal role while the real
+employer stays hidden until a recruiter screen. Where hiding the employer is a
+standing skip, detect it at the BOARD level, before scoring any single role.
+
+- The tell is scale plus spread together: roughly 200+ postings AND 20+ distinct
+  locations. Either alone is innocent (a large employer posts many reqs from a
+  few offices; a distributed startup spans many cities with few reqs), but the
+  combination is the marketplace signature. `boards.looks_like_aggregator_board`
+  implements this, and dropping the board costs one check instead of one wasted
+  screen per posting it would contribute.
+- Secondary tell for a human read: the same title repeated verbatim across
+  unrelated cities and countries, mixed with functions the company could not
+  plausibly all be hiring for at once.
 
 ## Headless screening via the posting APIs (before opening any browser)
 

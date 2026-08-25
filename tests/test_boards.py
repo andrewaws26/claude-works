@@ -111,3 +111,42 @@ def test_fetch_job_description_honest_failures():
         fetch=lambda u: (_ for _ in ()).throw(OSError("404")))
     assert "disabled" in disabled["error"]
     assert "unrecognized" in boards.fetch_job_description("https://example.com/careers")["error"]
+
+
+def test_ashby_workplace_type_beats_is_remote():
+    """A Hybrid posting sets isRemote=True; workplaceType is the ruling field."""
+    board = {"name": "Acme Agents", "jobs": [
+        {"id": "hybrid-1", "title": "Forward Deployed Engineer",
+         "location": "Foster City, CA", "isRemote": True, "workplaceType": "Hybrid",
+         "applyUrl": "https://jobs.ashbyhq.com/acme-agents/hybrid-1"},
+        {"id": "remote-1", "title": "Applied AI Engineer",
+         "location": "Remote, US", "isRemote": True, "workplaceType": "Remote",
+         "applyUrl": "https://jobs.ashbyhq.com/acme-agents/remote-1"},
+        {"id": "onsite-1", "title": "Platform Engineer",
+         "location": "San Francisco", "isRemote": True, "workplaceType": "OnSite",
+         "applyUrl": "https://jobs.ashbyhq.com/acme-agents/onsite-1"},
+    ]}
+    jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: board)
+    assert [j.remote for j in jobs] == [False, True, False]
+
+
+def test_ashby_falls_back_to_is_remote_without_workplace_type():
+    jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: ASHBY_BOARD)
+    assert jobs[0].remote is True
+
+
+def _board_jobs(count: int, locations: list[str]) -> list:
+    from claude_works.models import Job
+    return [Job(title=f"Founding Engineer {i}", company="Marketplace",
+                url=f"https://jobs.ashbyhq.com/marketplace/{i}", source="boards/ashby/marketplace",
+                location=locations[i % len(locations)], ats="Ashby")
+            for i in range(count)]
+
+
+def test_aggregator_board_needs_both_scale_and_spread():
+    cities = [f"City {i}" for i in range(25)]
+    assert boards.looks_like_aggregator_board(_board_jobs(300, cities)) is True
+    # Big employer, few offices: not a marketplace.
+    assert boards.looks_like_aggregator_board(_board_jobs(300, ["Austin", "Berlin"])) is False
+    # Distributed startup across many cities, but a plausible number of reqs.
+    assert boards.looks_like_aggregator_board(_board_jobs(30, cities)) is False
