@@ -191,6 +191,71 @@ def is_time_zone_restricted(blob: str, allowed: tuple[str, ...] = CANDIDATE_TZ) 
             return True
     return False
 
+
+# A "Remote - US" label can also hide a RESIDENCY knockout: the posting is
+# genuinely remote, but only for people who already live in an enumerated set of
+# states. Seen in both the ATS location field ("Remote - CO, FL, GA, MA, ...")
+# and one line of the JD body ("Employees may live in the following locations:
+# Texas, Colorado, ..."). Neither the onsite list nor the time-zone rule catches
+# it, and the screen slot is spent proving the role was never applicable.
+# Two narrow paths, both tied to a residency claim, so a company merely naming
+# its office states or its pay-transparency states stays kept.
+CANDIDATE_STATES: tuple[str, ...] = ("kentucky", "indiana")
+CANDIDATE_STATE_CODES: frozenset[str] = frozenset({"KY", "IN"})
+US_STATE_NAMES: tuple[str, ...] = (
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine",
+    "maryland", "massachusetts", "michigan", "minnesota", "mississippi",
+    "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey",
+    "new mexico", "new york", "north carolina", "north dakota", "ohio",
+    "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina",
+    "south dakota", "tennessee", "texas", "utah", "vermont", "virginia",
+    "washington", "west virginia", "wisconsin", "wyoming",
+)
+# Postal codes are matched on the RAW string, uppercase only, so the ordinary
+# words "in" and "or" can never pose as Indiana and Oregon.
+STATE_CODE_RUN = re.compile(
+    r"(?i:remote)[^A-Za-z0-9]{0,12}((?:[A-Z]{2}\s*,\s*){2,}[A-Z]{2})"
+)
+RESIDENCY_CUE = re.compile(
+    r"(?:may live in|must (?:live|reside)|employees? (?:may|must) (?:live|reside)|"
+    r"residents? of|reside in|open to candidates (?:in|living in)|"
+    r"hiring (?:only )?in|located in) (?:the following [a-z ]{0,20})?",
+    re.I,
+)
+# A pay-transparency notice ("For residents of California, Colorado and New
+# York, the base pay range is ...") reuses the same cue words without being a
+# residency rail, so a comp word inside the window disarms the spelled-out path.
+PAY_WORD = re.compile(r"salary|base pay|pay range|compensation|pay transparency", re.I)
+STATE_LIST_MIN = 3
+_RESIDENCY_WINDOW = 260
+
+
+def is_state_restricted(
+    raw: str,
+    home_states: tuple[str, ...] = CANDIDATE_STATES,
+    home_codes: frozenset[str] = CANDIDATE_STATE_CODES,
+) -> bool:
+    """True when a posting enumerates allowed-residency states and ours is absent.
+
+    ``raw`` must keep its original casing: the postal-code path depends on it.
+    """
+    match = STATE_CODE_RUN.search(raw or "")
+    if match:
+        codes = [c.strip() for c in match.group(1).split(",")]
+        if len(codes) >= STATE_LIST_MIN and not home_codes & set(codes):
+            return True
+    for cue in RESIDENCY_CUE.finditer(raw or ""):
+        window = (raw or "")[cue.end():cue.end() + _RESIDENCY_WINDOW]
+        if PAY_WORD.search(window):
+            continue
+        lowered = window.lower()
+        named = {st for st in US_STATE_NAMES if st in lowered}
+        if len(named) >= STATE_LIST_MIN and not any(h in lowered for h in home_states):
+            return True
+    return False
+
 # Pre-sales "Solutions/Sales Engineer" roles dressed as builder titles: the lane
 # table gives "solutions engineer" high points on title alone, but a real chunk
 # of postings under that title are pure pre-sales (POV/RFP/deal-closing, reporting
@@ -542,6 +607,8 @@ def park_reason(
         return "onsite-hybrid"
     if is_time_zone_restricted(blob):
         return "time-zone-restricted"
+    if is_state_restricted(" ".join([job.location, job.title, job.comp])):
+        return "state-restricted-remote"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):

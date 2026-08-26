@@ -351,6 +351,37 @@ def test_time_zone_language_that_does_not_exclude_the_candidate_is_kept():
     assert curation.is_time_zone_restricted("must reside in the pacific or mountain time zone")
 
 
+def test_state_restricted_remote_is_parked():
+    # Genuinely remote, but only for residents of an enumerated state list that
+    # does not include ours, so the role was never applicable.
+    job = Job(title="Senior Forward Deployed Engineer", company="Acme Delivery",
+              url="https://job-boards.greenhouse.io/acmedelivery/jobs/1234567",
+              ats="greenhouse", remote=True,
+              location="Remote - CO, FL, GA, MA, MD, MN, NE, NC, OR, PA, SC, TN, TX, WA",
+              comp="build agentic systems and LLM-backed workflows in Python")
+    res = curation.curate([job])
+    assert res.parked and res.parked[0][1] == "state-restricted-remote"
+
+
+def test_state_language_that_does_not_exclude_the_candidate_is_kept():
+    # Spelled-out residency list that includes a home state.
+    assert not curation.is_state_restricted(
+        "Employees may live in the following locations: Texas, Kentucky, Florida, Georgia")
+    # Same shape, home state absent, so it is a real knockout.
+    assert curation.is_state_restricted(
+        "Employees may live in the following locations: Texas, Colorado, Florida, Georgia")
+    # A pay-transparency notice reuses the cue words without restricting residency.
+    assert not curation.is_state_restricted(
+        "For residents of California, Colorado and New York, the base pay range is $150,000")
+    # Office locations are not a residency claim.
+    assert not curation.is_state_restricted(
+        "We have offices in California, New York and Texas and hire remote across the US")
+    # A postal-code run that includes a home code stays kept.
+    assert not curation.is_state_restricted("Remote - CA, IN, NY, TX")
+    # Lowercase "in"/"or" must never be read as Indiana or Oregon.
+    assert not curation.is_state_restricted("remote, work in ca, or ny, tx from anywhere")
+
+
 def test_hybrid_only_org_is_parked(monkeypatch):
     # The board fetch showed no posting with workplaceType "Remote", so the org
     # was recorded as hybrid-only. Every later req from it parks without a screen,
