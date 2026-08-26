@@ -425,11 +425,28 @@ def role_key(company_slug: str, title: str) -> tuple[str, str]:
 RAILED_FAMILY_MIN = 3
 
 
+# Level qualifiers that prefix a title without changing the job family. Stripping
+# them keeps level variants of one family on the SAME knockout key, so a board
+# that posts "Senior X" and "X" and "X, Segment" reaches the threshold instead of
+# spreading three rejections across three keys that each stay under it.
+_LEVEL_PREFIX = re.compile(
+    r"^(?:sr\.?|senior|staff|principal|lead|junior|jr\.?|associate|"
+    r"entry[- ]level|mid[- ]level)\s+(?=\S)",
+    re.I,
+)
+
+
 def role_family(title: str) -> str:
-    """Title minus its segment suffix: "Applied Architect, Startups" -> the
-    family key for "Applied Architect". Empty when the base is a single word,
-    which is too coarse to knock out a whole family on."""
+    """Title minus its segment suffix and level qualifier: both "Applied
+    Architect, Startups" and "Senior Applied Architect" give the family key for
+    "Applied Architect". Empty when the base is a single word, which is too
+    coarse to knock out a whole family on."""
     base = re.split(r"\s*[,(]", (title or "").strip())[0].strip()
+    while True:
+        stripped = _LEVEL_PREFIX.sub("", base)
+        if stripped == base:
+            break
+        base = stripped
     return _slug(base) if len(base.split()) >= 2 else ""
 
 

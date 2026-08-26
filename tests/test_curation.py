@@ -471,3 +471,18 @@ def test_excluded_vertical_org_is_parked(monkeypatch):
                     ats="ashby", location="Remote, United States", remote=True,
                     comp="agent runtime, typed tool surface, MCP servers, evals in Python")
     assert curation.curate([lookalike]).active
+
+
+def test_role_family_collapses_level_qualifiers():
+    # "Senior X" and "X, Segment" are the same job family at one org. Keeping
+    # them on separate keys spread three rejections across two counters, so the
+    # family never reached RAILED_FAMILY_MIN and each new sibling burned a screen.
+    fam = curation.role_family("Applied Architect")
+    assert curation.role_family("Senior Applied Architect") == fam
+    assert curation.role_family("Sr. Applied Architect, Startups") == fam
+    assert curation.role_family("Staff Applied Architect") == fam
+    assert curation.role_family("Principal Applied Architect") == fam
+    # Stripping the level must not shrink a base down to one word.
+    assert curation.role_family("Senior Engineer") == ""
+    # A level word that is part of the base, not a prefix, is untouched.
+    assert curation.role_family("Technical Lead Engineer") != ""
