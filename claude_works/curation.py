@@ -287,6 +287,22 @@ SANDBOX_ORGS: frozenset[str] = frozenset({"leverdemo", "demo"})
 # disqualifies an org from this set. Matched on the exact URL org slug.
 HYBRID_ONLY_ORGS: frozenset[str] = frozenset()
 
+# Orgs that are not excluded-industry vendors themselves, but publish an excluded
+# industry as a named customer and vertical in their About copy. These are missed by
+# body-term rails for a structural reason: harvested rows usually carry only a short
+# title, so no term from the posting body is ever in the text the rail sees, and the
+# company reads clean on its title, stack, and product. The call is company-level, so
+# it belongs at the org rather than the req: one board can publish a dozen otherwise
+# clean rows that each cost a screen slot.
+# Kept separate from the hard company exclusion list on purpose. That list is for
+# vendors whose whole mission is the excluded work; this one is a weaker, reversible
+# judgment about a dual-use vendor, and removing a slug here reverses the decision for
+# that org alone with no other effect. Populate at runtime from screened boards, and
+# record why in the run notes so the call can be audited later.
+# Matched on the exact URL org slug or company slug, never as a substring: a substring
+# match would also catch unrelated orgs whose names merely start with the same letters.
+EXCLUDED_VERTICAL_ORGS: frozenset[str] = frozenset()
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -456,6 +472,10 @@ def park_reason(
         return "demo-board"
     if job.url_org_slug and job.url_org_slug in HYBRID_ONLY_ORGS:
         return "hybrid-only-org"
+    if (job.url_org_slug and job.url_org_slug in EXCLUDED_VERTICAL_ORGS) or (
+        job.company_slug and job.company_slug in EXCLUDED_VERTICAL_ORGS
+    ):
+        return "excluded-vertical-org"
     if excluded_company_match(job) is not None:
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:

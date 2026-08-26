@@ -427,3 +427,23 @@ def test_genuine_remote_row_survives_the_new_onsite_rules():
               ats="ashby", location="Remote, United States", remote=True)
     r = curation.curate([job])
     assert r.active and not r.parked
+
+
+def test_excluded_vertical_org_is_parked(monkeypatch):
+    # A dual-use vendor that names an excluded industry as a customer and vertical
+    # in its About copy. The harvested row carries only a short title, so no body
+    # term is present for a text rail to match, and the title and stack read clean.
+    # The org entry is what parks it, and the match is on the exact slug.
+    monkeypatch.setattr(curation, "EXCLUDED_VERTICAL_ORGS", frozenset({"acmesync"}))
+    row = Job(title="AI Engineer", company="Acme Sync",
+              url="https://jobs.ashbyhq.com/acmesync/12345678-90ab-cdef-1234-567890abcdef",
+              ats="ashby", location="Remote, United States", remote=True,
+              comp="agent runtime, typed tool surface, MCP servers, evals in Python")
+    res = curation.curate([row])
+    assert res.parked and res.parked[0][1] == "excluded-vertical-org"
+    # A longer slug that merely starts with the same letters is not a match.
+    lookalike = Job(title="AI Engineer", company="Acmesync Labs",
+                    url="https://jobs.ashbyhq.com/acmesynclabs/12345678-90ab-cdef-1234-567890abcdef",
+                    ats="ashby", location="Remote, United States", remote=True,
+                    comp="agent runtime, typed tool surface, MCP servers, evals in Python")
+    assert curation.curate([lookalike]).active
