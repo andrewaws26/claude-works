@@ -370,6 +370,30 @@ def test_hybrid_only_org_is_parked(monkeypatch):
     assert curation.curate([other]).active
 
 
+def test_non_us_only_org_is_parked_on_the_raw_board_slug(monkeypatch):
+    # The board fetch showed every posting bound to one non-US region, and the
+    # residency requirement lived only in the benefits block, so no title, region,
+    # or location rail could see it. The org-level rail parks the siblings without
+    # a screen, even though each row advertises itself as remote.
+    monkeypatch.setattr(curation, "NONUS_ORGS", frozenset({"acme-inc"}))
+    sibling = Job(title="Full-Stack Builder, Product Engineering", company="Acme Inc",
+                  url="https://jobs.ashbyhq.com/acme-inc/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="", remote=True,
+                  comp="build product end to end with AI coding tools in Python")
+    res = curation.curate([sibling])
+    assert res.parked and res.parked[0][1] == "non-US-only-org"
+    # The rail must key on the RAW board slug. A different employer whose board
+    # name differs only by a token the slug helper strips ("inc") must be
+    # unaffected, since both collapse to the same normalized slug.
+    same_stem = Job(title="AI Engineer", company="Acme",
+                    url="https://jobs.ashbyhq.com/acme/12345678-90ab-cdef-1234-567890abcdef",
+                    ats="ashby", location="Remote, United States", remote=True,
+                    comp="build agentic systems in Python with LLM APIs")
+    assert same_stem.url_org_slug == sibling.url_org_slug
+    assert same_stem.url_org_raw != sibling.url_org_raw
+    assert curation.curate([same_stem]).active
+
+
 def test_railed_role_family_parks_the_next_segment_suffix():
     # An org posted the same job under many segment suffixes; each rejection got
     # its own role key, so the next suffix arrived unscreened. Once enough

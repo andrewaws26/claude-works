@@ -119,6 +119,33 @@ class Job:
                 return _slug(m.group(1).replace("-", " "))
         return ""
 
+    @property
+    def url_org_raw(self) -> str:
+        """Org path segment exactly as the board spells it, with no slug cleanup.
+
+        ``url_org_slug`` runs the name through ``_slug``, which drops corporate
+        suffixes and trailing ATS counters. That is right for ledger matching but
+        wrong for any rail that parks a whole org: two unrelated employers whose
+        board names differ only by a stripped token collapse to the same slug, so
+        parking one would silently park the other. Rails keyed on a specific board
+        use this raw segment instead. Empty string when the URL is not a
+        recognized ATS board.
+        """
+        import re
+        from urllib.parse import unquote
+
+        u = unquote(self.url or "")
+        for pat in (
+            r"ashbyhq\.com/([^/?#]+)",
+            r"workable\.com/([^/?#]+)",
+            r"greenhouse\.io/(?:embed/job_board\?for=)?([^/?#&]+)",
+            r"lever\.co/([^/?#]+)",
+        ):
+            m = re.search(pat, u, re.I)
+            if m:
+                return m.group(1).strip().lower()
+        return ""
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["role_key"] = self.role_key

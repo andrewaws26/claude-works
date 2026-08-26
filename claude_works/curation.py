@@ -303,6 +303,23 @@ HYBRID_ONLY_ORGS: frozenset[str] = frozenset()
 # match would also catch unrelated orgs whose names merely start with the same letters.
 EXCLUDED_VERTICAL_ORGS: frozenset[str] = frozenset()
 
+# Orgs whose ENTIRE board is non-US-only, in a way no other rail can see. The title
+# carries no region token, so the region rail never fires; the row often carries a
+# bare remote flag, which is true (remote within that region) and so passes the
+# location rail; and the residency requirement lives only in the ATS location field
+# or in the benefits block at the bottom of the posting body. Harvested rows that
+# carry just a title therefore reach a screen slot every time, and one board can
+# publish a dozen of them.
+# Matched on the RAW url org segment, never the normalized slug: the slug helper
+# strips generic corporate suffixes and trailing counters, so two boards whose names
+# differ only by one of those tokens collapse to a single key, and an org-level park
+# keyed on the slug would hit the wrong employer. Populate at runtime from verified
+# boards.
+# Sibling signal worth recording when adding an entry: a studio or agency that places
+# builders with an unnamed partner client also hides the real employer, which is an
+# independent skip on its own.
+NONUS_ORGS: frozenset[str] = frozenset()
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -472,6 +489,8 @@ def park_reason(
         return "demo-board"
     if job.url_org_slug and job.url_org_slug in HYBRID_ONLY_ORGS:
         return "hybrid-only-org"
+    if job.url_org_raw and job.url_org_raw in NONUS_ORGS:
+        return "non-US-only-org"
     if (job.url_org_slug and job.url_org_slug in EXCLUDED_VERTICAL_ORGS) or (
         job.company_slug and job.company_slug in EXCLUDED_VERTICAL_ORGS
     ):
