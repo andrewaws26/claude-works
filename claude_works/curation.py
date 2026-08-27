@@ -97,6 +97,7 @@ ADVANCED_DEGREE_NEGATED = re.compile(
 MODEL_TRAINING: tuple[str, ...] = (
     "fine-tun", "rlhf", "rlaif", "reward model", "model training", "pretrain",
     "pre-train", "training large language", "train llms", "models from scratch",
+    "coding agent evaluation", "ai coding agent evaluation",
 )
 ONSITE: tuple[str, ...] = (
     "on-site", "onsite", "in-office", "in office", "in person", "in-person",
