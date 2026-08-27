@@ -294,7 +294,10 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     "lever": [
         "hCaptcha-walled: fill everything, then PARK at the captcha for the human.",
         "Resume: setInputFiles on the hidden input#resume-upload-input (do not click through the captcha overlay).",
-        "Radios: set by clicking the input matched on its label text; the generic fill-form helper malforms non-boolean setChecked values.",
+        "Radios: match on the radio input's OWN value attribute rather than walking to its label text, which is exact when several questions share one card identifier (fieldN under the same card), and click it directly; the generic fill-form helper malforms non-boolean setChecked values. A plain click works even with the challenge widget rendered, because the radios sit above it in the form rather than under it.",
+        "EEO selects take the same native value setter as text inputs, but match the option by its visible TEXT and assign the option value, since option values are not the visible strings; decline wording differs per board (decline to self-identify versus I do not want to answer).",
+        "Not every form renders the full EEO set: a board with only gender, race, and veteran never arms the disability signature requirement. Enumerate the EEO selects present instead of assuming all four questions.",
+        "Distinguish a REQUIRED consent tick from an OPTIONAL marketing-contact opt-in. Leave optional marketing opt-ins unchecked; the programmatic-tick workaround is only for required consent boxes buried under the challenge widget.",
         "Required consent checkbox sits under the hCaptcha widget: once the challenge renders, the captcha iframe subtree intercepts pointer events and a normal click on the checkbox times out. Set it programmatically (checked=true, then dispatch input+change+click) before parking so the form is fully ready for the human.",
         "Lever auto-parses the uploaded resume and may auto-fill current location and current company from it; leave those unless wrong. Upload the resume FIRST so the parser fills the standard fields for you.",
         "Custom questions live under cards[<uuid>][fieldN] input names, so enumerate by name; EEO is native selects.",
