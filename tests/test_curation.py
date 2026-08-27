@@ -382,6 +382,39 @@ def test_state_language_that_does_not_exclude_the_candidate_is_kept():
     assert not curation.is_state_restricted("remote, work in ca, or ny, tx from anywhere")
 
 
+def test_metro_scoped_remote_is_parked():
+    # Labeled remote, but the qualifier scopes residency to one distant metro.
+    job = Job(title="Developer Relations Documentation Engineer", company="Acme Observability",
+              url="https://job-boards.greenhouse.io/acmeobs/jobs/7654321",
+              ats="greenhouse", remote=True, location="Remote (San Francisco)",
+              comp="build automation that keeps docs in sync with the code in Python")
+    res = curation.curate([job])
+    assert res.parked and res.parked[0][1] == "metro-scoped-remote"
+
+
+def test_remote_labels_that_do_not_scope_to_one_metro_are_kept():
+    # Single non-home metro, in each punctuation shape boards actually use.
+    assert curation.is_metro_scoped_remote("Remote (San Francisco)")
+    assert curation.is_metro_scoped_remote("Remote - Seattle")
+    assert curation.is_metro_scoped_remote("Remote (Bay Area)")
+    # A place plus its two-letter state code is still one place.
+    assert curation.is_metro_scoped_remote("Remote - New York, NY")
+    # Country-wide or open-ended remote is not metro-scoped.
+    assert not curation.is_metro_scoped_remote("Remote (US)")
+    assert not curation.is_metro_scoped_remote("Remote (United States)")
+    assert not curation.is_metro_scoped_remote("Remote (Anywhere)")
+    assert not curation.is_metro_scoped_remote("Remote")
+    # A LIST of allowed places belongs to the state rule, not this one.
+    assert not curation.is_metro_scoped_remote(
+        "Remote, Denver or New York City or San Francisco")
+    assert not curation.is_metro_scoped_remote("Remote - CO, FL, GA, MA")
+    # The candidate's own metro is reachable, so it is kept.
+    assert not curation.is_metro_scoped_remote("Remote (Kentucky)")
+    assert not curation.is_metro_scoped_remote("Remote - Louisville")
+    # A plain office location is the onsite rule's business, not this one.
+    assert not curation.is_metro_scoped_remote("San Francisco")
+
+
 def test_hybrid_only_org_is_parked(monkeypatch):
     # The board fetch showed no posting with workplaceType "Remote", so the org
     # was recorded as hybrid-only. Every later req from it parks without a screen,

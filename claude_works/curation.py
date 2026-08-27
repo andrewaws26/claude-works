@@ -257,6 +257,67 @@ def is_state_restricted(
             return True
     return False
 
+# --- metro-scoped "remote": a remote label qualified by ONE metro -------------
+# Boards routinely label a metro-anchored req "Remote (San Francisco)". No other
+# rail reaches that shape: the location says "remote" so the country check
+# passes, there is no in-office mandate for the onsite rule, and the
+# state-restriction rule needs three or more enumerated states, so a single
+# metro sails through and the row gets tagged remote. Two such rows were the
+# last candidates in a run's queue, and both turned out to require residency in
+# one metro ("the nature of this role requires candidates to be based in the
+# <metro> area, though there isn't an in-office requirement").
+# Deliberately narrow, because a multi-location posting is NOT this shape:
+#   * any broad-scope word in the qualifier keeps the row (country-wide, "anywhere");
+#   * a LIST of allowed places keeps the row (those belong to the state rule);
+#   * the candidate's own metro keeps the row.
+METRO_REMOTE = re.compile(r"^\s*remote\b\s*[(\-\u2013\u2014,:]\s*(.+?)\s*\)?\s*$", re.I)
+BROAD_SCOPE: tuple[str, ...] = (
+    "united states", "usa", "u.s.", " us ", "(us", "us)", "anywhere",
+    "nationwide", "national", "north america", "americas", "global",
+    "worldwide", "multiple", "east coast", "west coast", "canada",
+    "any state", "flexible",
+)
+US_METRO_NAMES: tuple[str, ...] = (
+    "san francisco", "bay area", "sf bay", "silicon valley", "new york", "nyc",
+    "seattle", "boston", "austin", "denver", "chicago", "los angeles",
+    "palo alto", "redwood city", "san mateo", "mountain view", "sunnyvale",
+    "cupertino", "atlanta", "miami", "dallas", "houston", "san diego",
+    "portland", "nashville", "raleigh", "brooklyn", "san jose", "bellevue",
+)
+# The candidate's own metros: a remote label scoped to one of these is reachable,
+# so it is kept rather than parked.
+HOME_METROS: tuple[str, ...] = (
+    "louisville", "kentucky", "indiana", "indianapolis", "cincinnati", "lexington",
+)
+
+
+def is_metro_scoped_remote(
+    location: str,
+    home_metros: tuple[str, ...] = HOME_METROS,
+) -> bool:
+    """True when a location is a remote label scoped to ONE non-home metro."""
+    match = METRO_REMOTE.match(location or "")
+    if not match:
+        return False
+    qualifier = match.group(1).lower().strip(" .()")
+    if not qualifier or qualifier == "remote":
+        return False
+    if any(word in f" {qualifier} " for word in BROAD_SCOPE):
+        return False
+    if " or " in f" {qualifier} " or "/" in qualifier or ";" in qualifier:
+        return False
+    parts = [part.strip() for part in qualifier.split(",") if part.strip()]
+    # One place, optionally followed by its two-letter state code.
+    if len(parts) > 2 or (len(parts) == 2 and len(parts[1]) != 2):
+        return False
+    qualifier = parts[0] if parts else qualifier
+    if any(home in qualifier for home in home_metros):
+        return False
+    return any(
+        name in qualifier for name in US_METRO_NAMES + US_STATE_NAMES
+    ) and not any(home in qualifier for home in home_metros)
+
+
 # Pre-sales "Solutions/Sales Engineer" roles dressed as builder titles: the lane
 # table gives "solutions engineer" high points on title alone, but a real chunk
 # of postings under that title are pure pre-sales (POV/RFP/deal-closing, reporting
@@ -610,6 +671,8 @@ def park_reason(
         return "time-zone-restricted"
     if is_state_restricted(" ".join([job.location, job.title, job.comp])):
         return "state-restricted-remote"
+    if is_metro_scoped_remote(job.location):
+        return "metro-scoped-remote"
     if any(t in title for t in OFF_LANE):
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
