@@ -397,6 +397,34 @@ DELIVERY_ARCHITECT_SIGNALS: tuple[str, ...] = (
     "netsuite", " sap ", " erp ",
 )
 
+# Infrastructure and deployment reqs wearing a builder title. A "Forward Deployed
+# Engineer, Infrastructure and Deployment" clears every other rail: the level is
+# right, the location is remote, and the lead title is one of the strongest keep
+# lanes there is. The body is the tell. It is container images and Helm charts
+# into a customer's managed Kubernetes across three clouds, plus identity and
+# network setup, secrets management, and first-response on-call. That is a
+# platform seat, not a seat building AI, and the container-orchestration stack is
+# a hard skill gap besides. Two independent gates keep this narrow. The title has
+# to carry the infrastructure qualifier, and the body has to corroborate it at
+# least twice, so a one-word mention of a cluster in an otherwise-builder posting
+# does not park it.
+INFRA_DEPLOY_TITLE = re.compile(
+    r"\b(devops|site reliability|sre|infrastructure and deployment|"
+    r"deployment engineer|infrastructure engineer|cloud engineer|"
+    r"kubernetes engineer|systems engineer)\b"
+)
+# The escape hatch, and the reason the qualifier is checked on the TITLE rather
+# than the body: an AI-qualified infrastructure title ("AI Infrastructure
+# Engineer, Agents and ML Systems") is a genuine builder seat whose body will
+# name the same container stack for the same reason any modern platform does.
+INFRA_DEPLOY_AI_QUALIFIED = re.compile(r"\b(ai|ml|llm|agent|agents|genai|inference)\b")
+INFRA_DEPLOY_SIGNALS: tuple[str, ...] = (
+    "helm", "kubernetes", "k8s", "terraform", "ansible", "on-call rotation",
+    "incident response", "saml", "iam and role", "secrets management",
+    "self-hosted", "self hosted",
+)
+INFRA_DEPLOY_SIGNAL_MIN = 2
+
 # Demo and sandbox tenants on public ATS hosts (for example a vendor's own
 # "demo" board). The postings parse like real reqs and survive every other rail,
 # but no employer is hiring against them, so each one costs a screen slot for
@@ -495,6 +523,7 @@ PARK_REASONS: tuple[str, ...] = (
     "onsite-hybrid", "office-anchored-location", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap",
     "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
+    "infra-deployment",
     "demo-board", "railed-role-family",
 )
 
@@ -685,6 +714,10 @@ def park_reason(
         s in title or s in blob for s in DELIVERY_ARCHITECT_SIGNALS
     ):
         return "delivery-architect"
+    if (INFRA_DEPLOY_TITLE.search(title)
+            and not INFRA_DEPLOY_AI_QUALIFIED.search(title)
+            and sum(1 for sig in INFRA_DEPLOY_SIGNALS if sig in blob) >= INFRA_DEPLOY_SIGNAL_MIN):
+        return "infra-deployment"
     if REGION_TITLE.search(title):
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):

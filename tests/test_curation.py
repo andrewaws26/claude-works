@@ -550,3 +550,37 @@ def test_role_family_collapses_level_qualifiers():
     assert curation.role_family("Senior Engineer") == ""
     # A level word that is part of the base, not a prefix, is untouched.
     assert curation.role_family("Technical Lead Engineer") != ""
+
+
+def test_infra_deployment_req_is_parked_but_ai_infra_builder_is_kept():
+    # An in-lane lead title whose body is a platform seat: container images and
+    # charts into a customer's cluster, identity setup, and first-response on-call.
+    # This one is reached before the hard-skill rail and named for what it is: the
+    # posting is off-lane on its own, independent of the stack it happens to name.
+    fde_infra = Job(title="Forward Deployed Engineer, Infrastructure and Deployment",
+                    company="Acme",
+                    url="https://jobs.ashbyhq.com/acme/4b4808ad-a208-44e1-94ed-1ec4e44d7251",
+                    ats="ashby", location="Remote, United States", remote=True,
+                    comp="our docker images and helm charts, deployment into customer "
+                         "managed clusters, sso and saml, secrets management, "
+                         "incident response")
+    res = curation.curate([fde_infra])
+    assert res.parked and res.parked[0][1] == "infra-deployment"
+
+    # The AI-qualified infrastructure title is a genuine builder seat and stays
+    # active even though its body carries the same identity and on-call signals.
+    ai_infra = Job(title="AI Infrastructure Engineer, Agents and ML Systems",
+                   company="Acme",
+                   url="https://jobs.ashbyhq.com/acme/12345678-90ab-cdef-1234-567890abcdef",
+                   ats="ashby", location="Remote, United States", remote=True,
+                   comp="build agent runtimes in python; you will own saml sso and "
+                        "secrets management for the inference tier")
+    assert curation.curate([ai_infra]).active
+
+    # One passing infrastructure mention does not make a builder posting a platform
+    # seat: the body has to corroborate the title at least twice.
+    builder = Job(title="Cloud Engineer, Applied AI", company="Acme",
+                  url="https://jobs.ashbyhq.com/acme/abcdef12-3456-7890-abcd-ef1234567890",
+                  ats="ashby", location="Remote, United States", remote=True,
+                  comp="build multi-step agent loops in typescript; terraform backs it")
+    assert curation.curate([builder]).active
