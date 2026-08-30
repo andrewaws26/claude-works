@@ -145,7 +145,7 @@ class Rails:
     excluded_domains: tuple[str, ...] = (
         "defense", "military", "surveillance", "weapon", "nuclear",
         "palantir", "anduril", "clearance", "biometric", "warfighter",
-        "nation state", "nation-state",
+        "nation state", "nation-state", "cmmc", "dfars",
     )
 
     # Companies / tracks that must never be re-applied to (active interviews + caps),
