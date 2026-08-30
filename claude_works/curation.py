@@ -92,6 +92,32 @@ ADVANCED_DEGREE: tuple[str, ...] = (
 ADVANCED_DEGREE_NEGATED = re.compile(
     r"\bno\b\W+(?:\w+\W+){0,2}phd|phd\W+(?:\w+\W+){0,2}not required")
 
+# Undisclosed end-employer / body-shop staffing rail. When a posting is fronted by
+# an intermediary and the real employer is never named, the rest of this module's
+# guarantees stop holding: per-company exclusion checks have nothing to check, a
+# tailored application has no target, and role-level dedupe collapses onto the
+# intermediary's name forever. A corp-to-corp line is its own rail besides, since it
+# presumes an incorporated vendor entity rather than an employment application.
+UNDISCLOSED_EMPLOYER = re.compile(
+    r"corp[\s-]?to[\s-]?corp|\bc2c\b|"
+    r"hired for a (?:customer|client) of\b|"
+    r"(?:position|posting|role|job|opening|req)\b[^.]{0,60}?\bon behalf of|"
+    r"(?:listed|posted|hiring|recruiting|advertised) on behalf of|"
+    r"(?:confidential|undisclosed|unnamed|unspecified) (?:end[\s-]?)?(?:client|customer|employer)|"
+    r"\bend[\s-]client\b")
+
+# The "on behalf of" clause is deliberately anchored to posting-level phrasing.
+# Ordinary forward-deployed and consultancy JDs say "you will build on behalf of
+# our customers" while naming a real employer, and those must not be parked; only
+# "this position is listed on behalf of ..." is the intermediary tell.
+# Same negation backstop as the advanced-degree rail: a row noting the ABSENCE of a
+# corp-to-corp arrangement must not knock itself out on the bare substring.
+UNDISCLOSED_EMPLOYER_NEGATED = re.compile(
+    r"\bno\b\W+(?:\w+\W+){0,2}corp[\s-]?to[\s-]?corp|"
+    r"\bnot\b\W+(?:\w+\W+){0,2}corp[\s-]?to[\s-]?corp|"
+    r"corp[\s-]?to[\s-]?corp\W+(?:\w+\W+){0,2}not\b|"
+    r"\bnot\b\W+(?:\w+\W+){0,2}end[\s-]client")
+
 # Learned from runtime skips (each skip means more like it are queued): model-training
 # / research engineering (the candidate builds ON models, not trains them), onsite/hybrid
 # requirements (candidate is remote-only), and lead/over-level roles hiding behind an IC
@@ -674,6 +700,8 @@ def park_reason(
         return "excluded-company"
     if matched_excluded_domain(blob) is not None:
         return "excluded-domain"
+    if UNDISCLOSED_EMPLOYER.search(blob) and not UNDISCLOSED_EMPLOYER_NEGATED.search(blob):
+        return "undisclosed-employer"
     if (
         any(t in title for t in RAILS.overlevel_terms)
         or any(t in title for t in EXTRA_LEVEL)

@@ -584,3 +584,29 @@ def test_infra_deployment_req_is_parked_but_ai_infra_builder_is_kept():
                   ats="ashby", location="Remote, United States", remote=True,
                   comp="build multi-step agent loops in typescript; terraform backs it")
     assert curation.curate([builder]).active
+
+
+def test_undisclosed_employer_is_parked():
+    # A posting fronted by an intermediary never names the real employer, so the
+    # per-company exclusion checks and role-level dedupe both lose their subject.
+    c2c = curation.curate([_job("Full Stack Developer", company="Acme (corp-to-corp contractor arrangement)")])
+    assert c2c.parked and c2c.parked[0][1] == "undisclosed-employer"
+    fronted = curation.curate([_job("AI Engineer", company="Acme (this position is listed on behalf of a partner company)")])
+    assert fronted.parked and fronted.parked[0][1] == "undisclosed-employer"
+    unnamed = curation.curate([_job("AI Engineer", company="Acme (placing builders with an unnamed client)")])
+    assert unnamed.parked and unnamed.parked[0][1] == "undisclosed-employer"
+
+
+def test_on_behalf_of_customers_in_jd_prose_does_not_park():
+    # Ordinary forward-deployed and consultancy JDs say the engineer builds "on
+    # behalf of our customers" while naming a real employer. Only posting-level
+    # phrasing is the intermediary tell, so this must stay active.
+    res = curation.curate([_job("AI Engineer", company="Acme (you will ship features on behalf of our customers)")])
+    assert res.active and res.active[0][0].title == "AI Engineer"
+
+
+def test_corp_to_corp_negated_does_not_park():
+    # Same negation backstop as the advanced-degree rail: a row noting the ABSENCE
+    # of a corp-to-corp arrangement must not knock itself out on the substring.
+    res = curation.curate([_job("AI Engineer", company="Acme (direct hire, no corp-to-corp)")])
+    assert res.active and res.active[0][0].title == "AI Engineer"
