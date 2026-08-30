@@ -47,6 +47,8 @@ _DEFAULT_LANE_POINTS: dict[str, int] = {
     "backend": 3,
     "platform engineer": 3,
     "support engineer": 3,
+    "ai enablement": 5,
+    "enablement engineer": 5,
 }
 LANE_POINTS: dict[str, int] = (
     {str(k).lower(): int(v) for k, v in POLICY["lane_points"].items()}
