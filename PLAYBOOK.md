@@ -304,3 +304,20 @@ and finishing the submit is inside the honesty rails. The
   role (a small regional vendor fronting a high-comp, big-city, VC-backed
   posting), the real employer is hidden. Skip it and record the evidence, so
   curation stops re-queueing the same board.
+- A contract engagement is not disqualifying on its own, but a contract posting
+  priced as an hourly PROPOSAL is a different shape from a normal opening and
+  usually rails on its requirements list. The posting API shows all three tells
+  before the body is read: an employment type of contract, a compensation block
+  whose interval is one hour, and body copy framed as a bid (proposals accepted
+  from a range, an estimated contract duration, a proposal deadline, a bid
+  process of several interviews plus a technical exercise). That shape is staff
+  augmentation into a named end client rather than a product hire, so it carries
+  a senior years floor written as a contractual qualification and a bespoke
+  client stack listed as non-negotiable rather than preferred. When the three
+  tells line up, read the qualifications list FIRST and do not trust an
+  inherited queue fit score: a bid posting's marketing half and its
+  qualifications half describe different jobs, and the disqualifying half is
+  always below the fold. Related tell: the end client is named only in the body
+  while the header carries the consultancy. That is adjacent to the hidden
+  employer rail without being it, since the employer here is disclosed and real,
+  so it needs a human read rather than a pattern match.
