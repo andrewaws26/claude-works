@@ -142,3 +142,55 @@ def test_applied_company_slugs_includes_name_and_url_org(tmp_path):
     slugs = tracker.applied_company_slugs(path=ledger)
     assert "acme" in slugs          # from the company name
     assert "acmewidgets" in slugs   # from the apply-URL org
+
+
+def _queue_row(company, role, url, status="parked-poorfit"):
+    return {"n": 1, "status": status, "ats": "Ashby", "fit": 9,
+            "text": f"{role} - {company}", "url": url, "_company": company, "_role": role}
+
+
+def test_dedupe_jobs_drops_a_role_already_in_the_queue_at_any_status(tmp_path):
+    # A role parked at a submit wall never reaches the ledger, so a ledger-only
+    # check re-queues it forever. This is the real failure that motivated the
+    # queue check: the parked role came back as the top-scoring candidate.
+    ledger = tmp_path / "applications.json"
+    ledger.write_text(json.dumps({"applications": []}), encoding="utf-8")
+    queue = tmp_path / "queue.json"
+    url = "https://jobs.ashbyhq.com/acme/12345678-90ab-cdef-1234-567890abcdef"
+    queue.write_text(json.dumps([_queue_row("Acme", "Applied AI Engineer", url)]), encoding="utf-8")
+
+    parked = Job(title="Applied AI Engineer", company="Acme", url=url)
+    fresh = Job(title="Agent Engineer", company="Initech",
+                url="https://jobs.ashbyhq.com/initech/abcdef12-3456-7890-abcd-ef1234567890")
+
+    out = tracker.dedupe_jobs([parked, fresh], path=ledger, queue_path=queue)
+    assert [j.title for j in out] == ["Agent Engineer"]
+
+
+def test_dedupe_jobs_drops_a_queued_role_reposted_under_a_new_url(tmp_path):
+    ledger = tmp_path / "applications.json"
+    ledger.write_text(json.dumps({"applications": []}), encoding="utf-8")
+    queue = tmp_path / "queue.json"
+    queue.write_text(json.dumps([_queue_row(
+        "Acme", "Applied AI Engineer",
+        "https://jobs.ashbyhq.com/acme/12345678-90ab-cdef-1234-567890abcdef")]), encoding="utf-8")
+
+    repost = Job(title="Applied AI Engineer", company="Acme",
+                 url="https://jobs.ashbyhq.com/acme/99999999-90ab-cdef-1234-567890abcdef")
+    out = tracker.dedupe_jobs([repost], path=ledger, queue_path=queue)
+    assert out == []
+
+
+def test_dedupe_jobs_keeps_a_different_role_at_a_queued_company(tmp_path):
+    # Role-level de-dup is the point: companies may repeat, the same role never.
+    ledger = tmp_path / "applications.json"
+    ledger.write_text(json.dumps({"applications": []}), encoding="utf-8")
+    queue = tmp_path / "queue.json"
+    queue.write_text(json.dumps([_queue_row(
+        "Acme", "Applied AI Engineer",
+        "https://jobs.ashbyhq.com/acme/12345678-90ab-cdef-1234-567890abcdef")]), encoding="utf-8")
+
+    other = Job(title="Support Engineer", company="Acme",
+                url="https://jobs.ashbyhq.com/acme/abcdef12-3456-7890-abcd-ef1234567890")
+    out = tracker.dedupe_jobs([other], path=ledger, queue_path=queue)
+    assert [j.title for j in out] == ["Support Engineer"]

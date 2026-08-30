@@ -56,6 +56,33 @@ class SearchAngle:
         return asdict(self)
 
 
+TRACKING_PARAMS = frozenset({
+    "source", "src", "ref", "referrer", "lang", "locale", "gh_src",
+    "trackingid", "t", "from", "origin", "mc_cid", "mc_eid", "utm",
+})
+
+
+def _canonical_url(url: str) -> str:
+    """Lowercased apply URL with tracking noise removed and identity kept.
+
+    Drops the fragment, tracking/locale params, ``utm_*`` and empty-valued
+    params; keeps every other param, sorted so param order does not create two
+    identities for one posting.
+    """
+    u = (url or "").strip().lower().split("#")[0]
+    base, sep, query = u.partition("?")
+    base = base.rstrip("/")
+    if not sep or not query:
+        return base
+    keep = []
+    for part in query.split("&"):
+        k, _, v = part.partition("=")
+        if not k or not v or k in TRACKING_PARAMS or k.startswith("utm_"):
+            continue
+        keep.append(f"{k}={v}")
+    return base + ("?" + "&".join(sorted(keep)) if keep else "")
+
+
 @dataclass
 class Job:
     """A single discovered role, normalized across every discovery source.
@@ -77,7 +104,20 @@ class Job:
 
     @property
     def role_key(self) -> str:
-        """Canonical per-role id: ``<ats>:<org>:<jobid>`` from the apply URL."""
+        """Canonical per-role id: ``<ats>:<org>:<jobid>`` from the apply URL.
+
+        A recognized ATS board carries the job id in the PATH, so the query
+        string there is pure tracking and is dropped. The ``raw:`` fallback
+        cannot assume that. Several ATSes put the req id in the QUERY instead
+        (``details.aspx?jid=610083``, ``JobIntroduction.action?id=...``), so
+        dropping the whole query would collapse every unrelated posting on one
+        base path into a single key. That failure is quieter and worse than a
+        duplicate: de-dup would start discarding genuinely new roles as
+        "already seen". The fallback therefore keeps identifying params and
+        drops only tracking/locale and empty ones. When in doubt it
+        UNDER-matches, because the ``(company, title)`` pair in
+        ``tracker.dedupe_jobs`` is the backstop for a repost under a new URL.
+        """
         import re
 
         u = (self.url or "").split("?")[0].rstrip("/")
@@ -89,7 +129,7 @@ class Job:
             m = re.search(pat, u, re.I)
             if m:
                 return f"{tag}:{m.group(1).lower()}:{m.group(2).lower()}"
-        return f"raw:{u.lower()}:"
+        return f"raw:{_canonical_url(self.url)}:"
 
     @property
     def company_slug(self) -> str:

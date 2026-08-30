@@ -210,19 +210,62 @@ def applied_role_pairs(path: Path | None = None) -> set[tuple[str, str]]:
     return pairs
 
 
-def dedupe_jobs(jobs: Iterable[Job], path: Path | None = None) -> list[Job]:
-    """Drop jobs whose role is already in the ledger; de-dup the input by role.
+def queued_role_identities(
+    queue_path: Path | None = None,
+) -> tuple[set[str], set[tuple[str, str]]]:
+    """Role identities already sitting in the QUEUE, at any status.
 
-    Two independent identities are checked, because either one alone leaks. The
-    ``role_key`` is URL-derived, so the same role re-harvested from a different
-    source (an aggregator link one day, the company's own board the next) gets a
-    fresh key and re-enters the queue as if it were new, costing a full screening
-    pass on a role that was already decided. The ``(company slug, title slug)``
-    pair catches that. It stays role-level: the same company with a DIFFERENT
-    title still passes through, which is deliberate.
+    Status is deliberately ignored. A role that was parked, railed, or already
+    filled is just as decided as one in the ledger, and re-queuing it costs a
+    full screening pass to reach the same answer.
+    """
+    keys: set[str] = set()
+    pairs: set[tuple[str, str]] = set()
+    for row in load_queue(queue_path):
+        if not isinstance(row, dict):
+            continue
+        job = Job(
+            title=row.get("_role", "") or "",
+            company=row.get("_company", "") or "",
+            url=row.get("url", "") or "",
+        )
+        if job.url:
+            keys.add(job.role_key)
+        if job.company and job.title:
+            pairs.add((job.company_slug, _slug(job.title)))
+    return keys, pairs
+
+
+def dedupe_jobs(
+    jobs: Iterable[Job],
+    path: Path | None = None,
+    queue_path: Path | None = None,
+) -> list[Job]:
+    """Drop jobs already decided in the ledger OR already in the queue.
+
+    Three identities are checked, because each one alone leaks.
+
+    The ``role_key`` is URL-derived, so the same role re-harvested from a
+    different source (an aggregator link one day, the company's own board the
+    next) gets a fresh key and re-enters the queue as if it were new, costing a
+    full screening pass on a role that was already decided. The
+    ``(company slug, title slug)`` pair catches that.
+
+    The QUEUE is checked as well as the ledger. Checking only the ledger leaks
+    every role that was queued but never applied to: a role parked at a wall or
+    railed on a JD detail never reaches the ledger, so nothing stops it being
+    re-queued forever. Observed in the wild, a role parked at a submit wall
+    came back the next day as the top-scoring candidate and consumed a whole
+    run before the duplicate was spotted.
+
+    De-dup stays role-level: the same company with a DIFFERENT title still
+    passes through, which is deliberate and has produced interviews.
     """
     seen = applied_role_keys(path)
     seen_pairs = applied_role_pairs(path)
+    queued_keys, queued_pairs = queued_role_identities(queue_path)
+    seen |= queued_keys
+    seen_pairs |= queued_pairs
     out: list[Job] = []
     for j in jobs:
         rk = j.role_key

@@ -127,3 +127,22 @@ def test_search_angle_to_dict():
     assert d["name"] == "FDE"
     assert d["target_titles"] == ("FDE", "SE")
     assert d["is_default"] is True
+
+
+def test_role_key_keeps_req_id_carried_in_the_query_string():
+    # Several ATSes put the req id in the query, not the path. Dropping the
+    # query would collapse unrelated postings sharing a base path into one
+    # key, and de-dup would then discard genuinely new roles as "already seen".
+    a = Job(title="X", company="Acme",
+            url="https://recruit.example.com/v3/details.aspx?jid=610083&cid=8052")
+    b = Job(title="Y", company="Beta",
+            url="https://recruit.example.com/v3/details.aspx?jid=354224&cid=8487")
+    assert a.role_key != b.role_key
+
+
+def test_role_key_ignores_tracking_params_and_param_order_on_raw_urls():
+    a = Job(title="X", company="Acme",
+            url="https://recruit.example.com/v3/details.aspx?jid=610083&cid=8052&source=&lang=en")
+    b = Job(title="X", company="Acme",
+            url="https://recruit.example.com/v3/details.aspx?cid=8052&jid=610083&utm_source=feed")
+    assert a.role_key == b.role_key
