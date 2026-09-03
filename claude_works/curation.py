@@ -423,6 +423,10 @@ DELIVERY_ARCHITECT_SIGNALS: tuple[str, ...] = (
     "system integrator", "systems integrator", "professional services",
     "implementation partner", "appian", "anaplan", "salesforce", "servicenow",
     "netsuite", " sap ", " erp ",
+    # Packaged-platform PRODUCT names: a board-summary row can name the product
+    # while never containing the vendor's name, which slips past the vendor
+    # signals above.
+    "data 360", "agentforce",
 )
 
 # Infrastructure and deployment reqs wearing a builder title. A "Forward Deployed
