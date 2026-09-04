@@ -538,6 +538,13 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "A reCAPTCHA v2 'I'm not a robot' checkbox can appear inside an iframe ONLY after 'Submit Application' is clicked, with no earlier sign of it anywhere in the form. There is no way to pre-screen a posting as captcha-gated; fill the whole form first, and treat the reveal at submit time as the wall. Per the never-solve-captcha rule, park with everything already filled so the human step is just the checkbox.",
         "'How did you hear about us' option lists on this platform are hand-picked per tenant and often omit common answers like LinkedIn; selecting 'Other' reveals a required free-text 'Please Specify Source' field.",
     ],
+    "kula": [
+        "Fully headless-submittable: a tabbed job-details/application-form page (careers.kula.ai/<org>/<jobid>) built on Chakra UI plus react-select, no account, no captcha observed. Success is unambiguous: the URL gains a success query parameter and the form is replaced by a plain 'submitted successfully' message.",
+        "The job description is not in the rendered text node a plain fetch reads; it is JSON-escaped inside a description field in the page source. Pre-screen by extracting that field directly rather than trusting a truncated meta-tag summary.",
+        "Chakra UI radio buttons: clicking the radio input itself times out because a styled control span intercepts the pointer event. Click the adjacent label text instead.",
+        "react-select comboboxes here behave like the ones on other boards: click the visible placeholder text to open the listbox rather than the hidden input, then click the option by visible text.",
+        "Some postings gate submit behind short free-text essay questions probing the exact skill the role wants (for this posting, AI-toolchain experience and an agentic-coding SDLC question). Answer these as real narrative content grounded in verified experience, not throwaway filler; a role explicitly hiring for a practice will read the essay answers as the strongest signal in the form.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -631,6 +638,8 @@ def classify_ats(job: Job) -> str:
         return "pinpointhq"
     if "gnahiring.com" in u:
         return "gnahiring"
+    if "careers.kula.ai" in u:
+        return "kula"
     return job.ats.lower() or "unknown"
 
 
