@@ -458,6 +458,26 @@ def test_non_us_only_org_is_parked_on_the_raw_board_slug(monkeypatch):
     assert curation.curate([same_stem]).active
 
 
+def test_aggregator_board_is_parked_on_the_raw_board_slug(monkeypatch):
+    # Every posting on the board defers applications to an unnamed partner
+    # company; the tell lives in the posting body, so a title-only harvested row
+    # carries nothing the text rule can see. The org-level rail parks the whole
+    # family on the board slug alone, before any posting is fetched.
+    monkeypatch.setattr(curation, "AGGREGATOR_ORGS", frozenset({"talent-bridge"}))
+    row = Job(title="Full Stack AI Engineer", company="talent-bridge",
+              url="https://jobs.lever.co/talent-bridge/12345678-90ab-cdef-1234-567890abcdef",
+              ats="lever", location="Remote, United States", remote=True,
+              comp="build agentic systems in Python with LLM APIs")
+    res = curation.curate([row])
+    assert res.parked and res.parked[0][1] == "aggregator-board"
+    # A board not in the set is unaffected.
+    other = Job(title="Full Stack AI Engineer", company="Directco",
+                url="https://jobs.lever.co/directco/12345678-90ab-cdef-1234-567890abcdef",
+                ats="lever", location="Remote, United States", remote=True,
+                comp="build agentic systems in Python with LLM APIs")
+    assert curation.curate([other]).active
+
+
 def test_railed_role_family_parks_the_next_segment_suffix():
     # An org posted the same job under many segment suffixes; each rejection got
     # its own role key, so the next suffix arrived unscreened. Once enough

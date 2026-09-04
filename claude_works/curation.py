@@ -507,6 +507,16 @@ EXCLUDED_VERTICAL_ORGS: frozenset[str] = frozenset()
 # independent skip on its own.
 NONUS_ORGS: frozenset[str] = frozenset()
 
+# Aggregator/marketplace boards that publish every posting on behalf of an unnamed
+# partner company. The intermediary's board slug is the only name a harvested row
+# ever carries; the "listed on behalf of a partner" tell lives in the posting body,
+# which a title-only row never sees, so the text-anchored undisclosed-employer rule
+# fires one screen slot too late. Keyed on the RAW url org segment for the same
+# reason as NONUS_ORGS. Populate at runtime from verified boards: the confirming
+# signal is two or more postings on the same board whose bodies each defer
+# "all applications and next steps" to an unnamed partner.
+AGGREGATOR_ORGS: frozenset[str] = frozenset()
+
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
 # location rule never fires; the title itself is the reliable signal. Also catches
@@ -696,6 +706,8 @@ def park_reason(
         return "hybrid-only-org"
     if job.url_org_raw and job.url_org_raw in NONUS_ORGS:
         return "non-US-only-org"
+    if job.url_org_raw and job.url_org_raw in AGGREGATOR_ORGS:
+        return "aggregator-board"
     if (job.url_org_slug and job.url_org_slug in EXCLUDED_VERTICAL_ORGS) or (
         job.company_slug and job.company_slug in EXCLUDED_VERTICAL_ORGS
     ):
