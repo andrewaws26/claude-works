@@ -545,6 +545,11 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "react-select comboboxes here behave like the ones on other boards: click the visible placeholder text to open the listbox rather than the hidden input, then click the option by visible text.",
         "Some postings gate submit behind short free-text essay questions probing the exact skill the role wants (for this posting, AI-toolchain experience and an agentic-coding SDLC question). Answer these as real narrative content grounded in verified experience, not throwaway filler; a role explicitly hiring for a practice will read the essay answers as the strongest signal in the form.",
     ],
+    "custom": [
+        "A small company's bespoke careers page can change apply mechanism entirely between visits: one seen previously as mail-to-only (no submittable form, so it had to be parked) had, weeks later, a real in-page form on the same posting family with no code change on this system's side. Before trusting an old parked note that says 'no web form,' re-fetch the live page; do not assume a prior finding about a custom site is still true.",
+        "Some bespoke forms deliberately skip a resume upload and instead ask for a single free-text message field, explicitly favoring a short, specific, evidence-grounded pitch over an attached document. Treat that field as the entire pitch: cite concrete built-and-shipped specifics that map directly to the posting's own listed asks, not a generic cover-letter paragraph.",
+        "Confirmation on a custom form is often an in-place DOM swap (the form section replaced by a status/heading block reading something like 'submitted' or 'sent'), not a URL redirect to a dedicated confirmation route. Match on the appearing text, not a URL change.",
+    ],
 }
 
 # Tactics that apply across every ATS.
