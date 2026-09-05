@@ -537,6 +537,18 @@ def test_genuine_remote_row_survives_the_new_onsite_rules():
     assert r.active and not r.parked
 
 
+def test_negated_remote_mention_does_not_suppress_the_onsite_park():
+    # A row noting the ABSENCE of a remote mention ("no remote mention") contains
+    # the substring "remote", which used to satisfy the plain onsite rule's
+    # "remote" not in blob check and wrongly kept the row active.
+    job = Job(title="AI Engineer", company="Acme",
+              url="https://jobs.ashbyhq.com/a/52345678-90ab-cdef-1234-567890abcdef",
+              ats="ashby", location="New York City", remote=False,
+              comp="New York City onsite, no remote mention in the posting")
+    r = curation.curate([job])
+    assert r.parked and r.parked[0][1] == "onsite-hybrid"
+
+
 def test_excluded_vertical_org_is_parked(monkeypatch):
     # A dual-use vendor that names an excluded industry as a customer and vertical
     # in its About copy. The harvested row carries only a short title, so no body

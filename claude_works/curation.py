@@ -92,6 +92,15 @@ ADVANCED_DEGREE: tuple[str, ...] = (
 ADVANCED_DEGREE_NEGATED = re.compile(
     r"\bno\b\W+(?:\w+\W+){0,2}phd|phd\W+(?:\w+\W+){0,2}not required")
 
+# Inverse of the negation trap above: the plain onsite rule below requires "remote"
+# to be ABSENT before it parks, so a row noting the ABSENCE of a remote mention
+# ("no remote mention", "not remote") false-SUPPRESSES the park instead of
+# false-triggering one. A summariser should avoid writing "remote" at all when
+# noting its absence, but this regex is a backstop, not a license to.
+REMOTE_MENTION_NEGATED = re.compile(
+    r"\bno\b\W+(?:\w+\W+){0,2}remote|\bnot\b\W+(?:\w+\W+){0,2}remote|"
+    r"remote\W+(?:\w+\W+){0,2}mention")
+
 # Undisclosed end-employer / body-shop staffing rail. When a posting is fronted by
 # an intermediary and the real employer is never named, the rest of this module's
 # guarantees stop holding: per-company exclusion checks have nothing to check, a
@@ -740,7 +749,7 @@ def park_reason(
         return "onsite-hybrid"
     if job.remote and office_anchored(job.location):
         return "office-anchored-location"
-    if any(o in blob for o in ONSITE) and "remote" not in blob:
+    if any(o in blob for o in ONSITE) and ("remote" not in blob or REMOTE_MENTION_NEGATED.search(blob)):
         return "onsite-hybrid"
     if is_time_zone_restricted(blob):
         return "time-zone-restricted"
