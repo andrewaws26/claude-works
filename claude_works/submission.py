@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # standard credentials clear it with no captcha or email code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -550,6 +550,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Some bespoke forms deliberately skip a resume upload and instead ask for a single free-text message field, explicitly favoring a short, specific, evidence-grounded pitch over an attached document. Treat that field as the entire pitch: cite concrete built-and-shipped specifics that map directly to the posting's own listed asks, not a generic cover-letter paragraph.",
         "Confirmation on a custom form is often an in-place DOM swap (the form section replaced by a status/heading block reading something like 'submitted' or 'sent'), not a URL redirect to a dedicated confirmation route. Match on the appearing text, not a URL change.",
     ],
+    "workatastartup": [
+        "A startup-network job board's own posting page (for example one hosted under a Y Combinator style directory) never links to the employer's own ATS: the apply link routes through the network's account-auth flow into a platform-wide application, i.e. 'apply to hundreds of startups with one profile.' Treat this as a real account signup, not a one-off form, the first time a candidate applies through that network.",
+        "The signup form itself (first/last name, email, username, password) fills cleanly with a standard batched field fill, no comboboxes or geocode lookups involved. But the signup button sits behind a visible checkbox captcha loaded in an iframe. This is the standard checkbox-captcha rail: never solve it, fill everything else and park.",
+        "Because the account is a prerequisite for even starting the application (there is usually no guest/one-off apply path on the platform side), the park note must carry the FULL signup URL with its query parameters intact (they route straight into the target employer's specific job/application after signup completes), not just a generic 'go apply' pointer.",
+        "Classify any queued row whose apply URL points at this kind of startup-network directory as account+captcha wall class at discovery time, same bucket as other reCAPTCHA-gated boards; do not expect a clean auto-submit.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -645,6 +651,8 @@ def classify_ats(job: Job) -> str:
         return "gnahiring"
     if "careers.kula.ai" in u:
         return "kula"
+    if "ycombinator.com" in u or "workatastartup.com" in u:
+        return "workatastartup"
     return job.ats.lower() or "unknown"
 
 
@@ -716,6 +724,7 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
             "icims": "account creation / email verification (iCIMS)",
             "bamboohr": "Google reCAPTCHA v2 checkbox (BambooHR)",
             "comeet": "invisible session-verification bot check (Comeet)",
+            "workatastartup": "account signup gated by a checkbox captcha (startup-network job board)",
         }.get(ats, "Workday date-spinbutton or account verification")
     else:
         action = "fill_and_park"
