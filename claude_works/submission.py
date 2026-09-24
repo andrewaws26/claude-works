@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # standard credentials clear it with no captcha or email code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup", "ultipro"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -452,6 +452,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Account wall with email verification; create the account where possible, fill what you can, park with the resume staged.",
         "Liveness check needs a real browser, not a curl-with-user-agent fetch: the page is a JS shell whose raw HTML title reads as a generic 'iCIMS Careers Portal' (or empty) for BOTH a live and a dead posting, so a plain HTTP fetch cannot tell them apart and will false-positive a live high-fit posting as dead. Render the page (headless browser navigate plus snapshot) and read the rendered job title and body before recording closed-expired.",
     ],
+    "ultipro": [
+        "Account wall (Auth0-backed login on a subdomain such as recruiting.ultipro.com); create the account where possible using the standard credentials and log in.",
+        "If a login attempt 400s with an invalid-credentials error even though the account clearly exists (a signup attempt on any tenant returns a user-already-exists error), the account was likely created earlier with a one-off password that no longer matches the standing credentials. This is recoverable without parking: use the login page's password-reset link, submit the account email, then read the resulting reset email from the ATS vendor's notification domain and open the reset link it contains directly (no click-through needed) to reach a change-password form. Set the new password back to the standing credentials so every later attempt logs in on the first try, then retry login normally. This is ownership verification of the candidate's own account through their own inbox, not a captcha or a second factor, so it stays inside the same honesty rails as any other emailed-code confirmation.",
+        "Once logged in, the profile ('presence') can carry over in full from an earlier application on the same tenant family (name, contact, work history, education, skills all pre-filled), so only the resume attachment and the per-posting screening questions need filling for a repeat applicant.",
+        "Submitting can trigger a 'save these changes to your presence' confirmation dialog; accepting it is what actually completes the submission, and the page then redirects to an application-submitted confirmation URL with a plain thank-you message.",
+    ],
     "oracle": [
         "Not always an account wall: some Oracle Fusion Cloud Recruiting instances (oraclecloud.com) use a guest-email flow instead, headed 'You don't need to have an account'. Just an email field plus a terms-and-conditions modal to agree to, then an emailed one-time code gate (rendered as several separate single-digit spinbuttons rather than one text box) that a real inbox check can resolve the same way as a Greenhouse email-code gate. Confirm which shape a given instance uses before defaulting to park.",
         "If the candidate has a prior application on the same career site under the same email, the whole multi-step form (personal info, screening questions, experience, resume, EEO, veteran status) can come back pre-filled from that saved profile, including a stale resume attachment from a different job; verify every field against the standard answers and replace the resume with the one tailored for the current role before submitting.",
@@ -634,6 +640,8 @@ def classify_ats(job: Job) -> str:
         return "gem"
     if "icims.com" in u:
         return "icims"
+    if "ultipro.com" in u:
+        return "ultipro"
     if "oraclecloud.com" in u:
         return "oracle"
     if "ats.rippling.com" in u:
@@ -733,6 +741,7 @@ def plan_submission(job: Job, resume_path: str = "", include_credentials: bool =
             "lever": "captcha / hCaptcha (Lever)",
             "gem": "hCaptcha shape puzzle (Gem)",
             "icims": "account creation / email verification (iCIMS)",
+            "ultipro": "account creation / password recovery (UltiPro/UKG)",
             "bamboohr": "Google reCAPTCHA v2 checkbox (BambooHR)",
             "comeet": "invisible session-verification bot check (Comeet)",
             "workatastartup": "account signup gated by a checkbox captcha (startup-network job board)",
