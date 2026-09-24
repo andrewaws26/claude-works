@@ -178,6 +178,7 @@ def test_region_in_title_is_parked_non_us_region():
         "Solutions Engineer, Nordics",
         "Solutions Engineer, Central & Eastern Europe - Hebrew Speaking",
         "Solutions Engineer, EMEA",
+        "Member of Applied AI - Architect { Noida}",
     ):
         res = curation.curate([_job(title, location="Hybrid", remote=False)])
         assert res.parked and res.parked[0][1] == "non-us-region", title

@@ -536,7 +536,8 @@ REGION_TITLE = re.compile(
     r"japan|singapore|australia|new zealand|brazil|mexico|canada|korea|israel|"
     r"mena|ksa|uae|saudi arabia|india|philippines|portugal|romania|vietnam|"
     r"indonesia|colombia|argentina|ukraine|ukrainian|czech|czechia|hungary|bulgaria|serbia|croatia|lithuania|latvia|estonia|pakistan|bangladesh|egypt|nigeria|kenya|turkey|taiwan|thailand|malaysia|chile|peru|uruguay|costa rica|"
-    r"middle east|africa|eu|uk)\b|[a-z]+[- ]speaking",
+    r"middle east|africa|eu|uk|"
+    r"noida|bengaluru|bangalore|hyderabad|gurugram|gurgaon|pune|mumbai|chennai|new delhi)\b|[a-z]+[- ]speaking",
 )
 
 # US-location signals. When a location is present but shows none of these, the
