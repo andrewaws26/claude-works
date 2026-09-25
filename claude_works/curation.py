@@ -49,6 +49,11 @@ _DEFAULT_LANE_POINTS: dict[str, int] = {
     "support engineer": 3,
     "ai enablement": 5,
     "enablement engineer": 5,
+    # "AI Solutions Architect" (AI-first qualifier leading the title) names an
+    # internal AI-program owner who builds the tooling themselves, distinct
+    # from a "[Platform] Solutions Architect" partner-delivery seat (already
+    # parked by the off-lane delivery-SA signals below fit_score never sees).
+    "ai solutions architect": 5,
 }
 LANE_POINTS: dict[str, int] = (
     {str(k).lower(): int(v) for k, v in POLICY["lane_points"].items()}
