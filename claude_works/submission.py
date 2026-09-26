@@ -462,7 +462,8 @@ ATS_GOTCHAS: dict[str, list[str]] = {
     ],
     "gem": [
         "hCaptcha shape-puzzle wall: fill everything, then PARK for the human; never attempt the puzzle.",
-        "No field ids or labels: map inputs by their visually preceding label and fill by index; file dropzones need a JS click on the hidden input[type=file].",
+        "No field ids or labels: map inputs by their visually preceding label and fill by index.",
+        "Resume dropzone never opens a real file chooser under automation, whether clicked via the visible div, its wrapper, coordinates, or focus+Enter. Do NOT click the hidden input[type=file] directly to force it: that has crashed the whole browser (not just the tab) rather than opening a chooser. Treat the resume attach itself as a park-for-human step and save every other answer to a file first.",
         "Prefer the 'Apply without saving' submit over the account-creating one.",
     ],
     "icims": [
