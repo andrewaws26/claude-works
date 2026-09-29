@@ -203,8 +203,9 @@ def office_anchored(location: str) -> bool:
 # phrases into a row's text even to negate them.
 LEAD_BODY: tuple[str, ...] = (
     "technical lead", "team lead", "tech lead", "engineering lead", "lead engineer",
-    "lead a team of", "mentor the team", "mentoring engineers", "drive engineering excellence",
-    "staff scope", "not just a strong individual contributor", "technical leader, not just",
+    "lead a team of", "leading a team of", "mentor the team", "mentoring engineers",
+    "drive engineering excellence", "staff scope", "not just a strong individual contributor",
+    "technical leader, not just", "coach and develop engineers", "performance management",
 )
 
 # A "United States - Remote" location label can still hide a TIME-ZONE knockout in
