@@ -115,19 +115,83 @@ def ashby_is_remote(posting: Mapping[str, Any]) -> bool:
     return bool(posting.get("isRemote", False))
 
 
-def ashby_board_jobs(org: str, fetch: Fetcher = _get_json) -> list[Job]:
+# Name -> USPS code, for boards that hand back state names as structured fields.
+US_STATE_CODES: dict[str, str] = {
+    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+    "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+    "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC",
+}
+ASHBY_ALLOWLIST_MIN = 2
+
+
+def ashby_state_allowlist(posting: Mapping[str, Any]) -> frozenset[str]:
+    """USPS codes of the enumerated allowed-residency states, or an empty set.
+
+    Some remote postings carry their residency rule as structured data rather
+    than prose: ``workplaceType`` is Remote, the primary ``location`` is a bare
+    US state name, and ``secondaryLocations[]`` lists more bare state names. That
+    is an allowlist, the structured twin of the "employees may live in the
+    following states" sentence the text rail already parks. The sweep's row text
+    never carries a location, so the text rail cannot see it; this reads the
+    fields directly. Conservative on purpose: it needs two or more entries that
+    are each exactly a state name (a list of cities is an office list, not a
+    residency rule), and a non-Remote workplace type never qualifies.
+    """
+    if str(posting.get("workplaceType") or "").strip().lower() != "remote":
+        return frozenset()
+    names = [str(posting.get("location") or "")]
+    for sec in posting.get("secondaryLocations") or []:
+        if not isinstance(sec, Mapping):
+            continue
+        addr = ((sec.get("address") or {}).get("postalAddress") or {})
+        names.append(str(sec.get("location") or addr.get("addressRegion") or ""))
+    cleaned = [n.strip().lower() for n in names if n and n.strip()]
+    if len(cleaned) < ASHBY_ALLOWLIST_MIN:
+        return frozenset()
+    codes: set[str] = set()
+    for name in cleaned:
+        code = US_STATE_CODES.get(name)
+        if not code:
+            return frozenset()
+        codes.add(code)
+    return frozenset(codes)
+
+
+def ashby_board_jobs(org: str, fetch: Fetcher = _get_json,
+                     home_codes: frozenset[str] | None = None) -> list[Job]:
+    if home_codes is None:
+        # Imported here, not at module top: curation imports discovery, which
+        # imports this module, so a top-level import would be circular.
+        from .curation import CANDIDATE_STATE_CODES
+        home_codes = CANDIDATE_STATE_CODES
     doc = fetch(f"https://api.ashbyhq.com/posting-api/job-board/{org}")
     jobs: list[Job] = []
     for j in doc.get("jobs", []):
         url = j.get("applyUrl") or j.get("jobUrl") or ""
         if not (j.get("title") and url):
             continue
+        allow = ashby_state_allowlist(j)
+        if allow and not (allow & home_codes):
+            continue
+        location = str(j.get("location") or "")
+        if allow:
+            location = "Remote - " + ", ".join(sorted(allow))
         jobs.append(Job(
             title=str(j["title"]).strip(),
             company=str(doc.get("name") or org),
             url=str(url),
             source=f"boards/ashby/{org}",
-            location=str(j.get("location") or ""),
+            location=location,
             remote=ashby_is_remote(j),
             comp=str((j.get("compensation") or {}).get("compensationTierSummary") or ""),
             ats="Ashby",

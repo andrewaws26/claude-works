@@ -130,6 +130,42 @@ def test_ashby_workplace_type_beats_is_remote():
     assert [j.remote for j in jobs] == [False, True, False]
 
 
+STATE_LIST_POSTING = {
+    "id": "states-1", "title": "AI Solutions Engineer", "workplaceType": "Remote",
+    "isRemote": True, "location": "California",
+    "secondaryLocations": [
+        {"location": "Florida", "address": {"postalAddress": {"addressCountry": "United States"}}},
+        {"location": "Massachusetts", "address": {"postalAddress": {"addressRegion": "Massachusetts "}}},
+        {"location": "Washington"}, {"location": "Wisconsin"}, {"location": "Georgia"},
+    ],
+    "applyUrl": "https://jobs.ashbyhq.com/acme-agents/states-1",
+}
+
+
+def test_ashby_state_allowlist_reads_primary_plus_secondary_states():
+    assert boards.ashby_state_allowlist(STATE_LIST_POSTING) == frozenset(
+        {"CA", "FL", "GA", "MA", "WA", "WI"})
+    # A city list is an office list, a lone state is an HQ, Hybrid never counts.
+    assert boards.ashby_state_allowlist({**STATE_LIST_POSTING, "location": "New York, NY",
+                                         "secondaryLocations": [{"location": "Atlanta"}]}) == frozenset()
+    assert boards.ashby_state_allowlist({**STATE_LIST_POSTING, "secondaryLocations": []}) == frozenset()
+    assert boards.ashby_state_allowlist({**STATE_LIST_POSTING, "workplaceType": "Hybrid"}) == frozenset()
+
+
+def test_ashby_board_drops_state_restricted_remote_posting():
+    """Remote plus an enumerated state list without ours is a residency rail."""
+    board = {"name": "Acme Agents", "jobs": [STATE_LIST_POSTING, ASHBY_BOARD["jobs"][0]]}
+    jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: board)
+    assert [j.title for j in jobs] == ["Forward Deployed Engineer"]
+    # The same posting listing our state is kept, and the row carries the list.
+    kept = {**STATE_LIST_POSTING, "location": "Kentucky"}
+    jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: {"name": "Acme", "jobs": [kept]})
+    assert len(jobs) == 1 and jobs[0].location == "Remote - FL, GA, KY, MA, WA, WI"
+    # Home codes are injectable, so a California candidate keeps the original.
+    jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: board, home_codes=frozenset({"CA"}))
+    assert len(jobs) == 2
+
+
 def test_ashby_falls_back_to_is_remote_without_workplace_type():
     jobs = boards.ashby_board_jobs("acme-agents", fetch=lambda url: ASHBY_BOARD)
     assert jobs[0].remote is True
