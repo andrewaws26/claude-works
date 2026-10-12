@@ -133,6 +133,7 @@ class Rails:
         "fine-tune", "fine tune", "model training", "rlhf",
         "cuda", "vllm", "three.js", "webgl", "rust-primary",
         "web3", "smart contract", "salesforce admin",
+        "c#", ".net ", ".net,", ".net/", "dotnet",
     )
 
     # Over-level signals -> disqualify (the default profile targets mid / IC / first-hire).
