@@ -643,3 +643,14 @@ def test_corp_to_corp_negated_does_not_park():
     # of a corp-to-corp arrangement must not knock itself out on the substring.
     res = curation.curate([_job("AI Engineer", company="Acme (direct hire, no corp-to-corp)")])
     assert res.active and res.active[0][0].title == "AI Engineer"
+
+
+def test_language_requirement_is_parked():
+    # A second-language requirement is an honest knockout when the candidate holds
+    # no such claim; the tell can live in the title alone or in one body line.
+    titled = curation.curate([_job("Forward Deployed Engineer, Spanish/English")])
+    assert titled.parked and titled.parked[0][1] == "language-required"
+    body = curation.curate([_job("Forward Deployed Engineer", company="Acme (requires fluency in both Spanish and English)")])
+    assert body.parked and body.parked[0][1] == "language-required"
+    bonus = curation.curate([_job("Forward Deployed Engineer", company="Acme (Spanish is a plus but not required)")])
+    assert not bonus.parked or bonus.parked[0][1] != "language-required"

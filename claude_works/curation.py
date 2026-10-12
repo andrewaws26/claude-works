@@ -132,6 +132,29 @@ UNDISCLOSED_EMPLOYER_NEGATED = re.compile(
     r"corp[\s-]?to[\s-]?corp\W+(?:\w+\W+){0,2}not\b|"
     r"\bnot\b\W+(?:\w+\W+){0,2}end[\s-]client")
 
+# A role whose title or body makes fluency in a second language a requirement is an
+# honest knockout for a candidate with no such claim, not a soft risk. The tell is
+# often only a title slash pair ("Engineer, Spanish/English") or one body line
+# ("requires fluency in both Spanish and English"). Negated when the language is
+# framed as a bonus, plus, preferred or nice-to-have.
+_LANGS = (
+    r"(?:spanish|portuguese|french|german|italian|dutch|japanese|mandarin|cantonese|chinese|"
+    r"korean|hindi|arabic|hebrew|russian|polish|turkish|vietnamese|thai|indonesian|tagalog)"
+)
+LANGUAGE_REQUIRED = re.compile(
+    r"\b(?:english\s*/\s*" + _LANGS + r"|" + _LANGS + r"\s*/\s*english)\b|"
+    r"\bbilingual\b|"
+    r"\bfluen(?:t|cy)\W+(?:\w+\W+){0,3}" + _LANGS + r"\b|"
+    r"\bnative\W+(?:\w+\W+){0,2}" + _LANGS + r"\W+(?:\w+\W+){0,2}speaker|"
+    r"\b" + _LANGS + r"[\s-]+speaking\b",
+    re.I,
+)
+LANGUAGE_NEGATED = re.compile(
+    r"\b(?:bonus|plus|preferred|nice[\s-]to[\s-]have|optional|not required)\b\W+(?:\w+\W+){0,6}" + _LANGS + r"|"
+    r"" + _LANGS + r"\W+(?:\w+\W+){0,5}\b(?:bonus|plus|preferred|nice[\s-]to[\s-]have|optional|not required)\b",
+    re.I,
+)
+
 # Learned from runtime skips (each skip means more like it are queued): model-training
 # / research engineering (the candidate builds ON models, not trains them), onsite/hybrid
 # requirements (candidate is remote-only), and lead/over-level roles hiding behind an IC
@@ -579,7 +602,7 @@ PARK_REASONS: tuple[str, ...] = (
     "already-applied", "already-screened", "excluded-company", "excluded-domain", "over-level",
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "office-anchored-location", "off-lane", "non-us-region", "non-us-location", "non-us-only",
-    "hard-skill-gap",
+    "hard-skill-gap", "language-required",
     "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
     "infra-deployment",
     "demo-board", "railed-role-family",
@@ -789,6 +812,8 @@ def park_reason(
             and not any(s in loc for s in US_SIGNALS_TIGHT)
             and not re.search(r"\bus\b|\busa\b", loc)):
         return "non-us-location"
+    if LANGUAGE_REQUIRED.search(blob) and not LANGUAGE_NEGATED.search(blob):
+        return "language-required"
     if any(s in blob for s in RAILS.hard_gap_skills):
         return "hard-skill-gap"
     ceiling = comp_ceiling(job.comp)
