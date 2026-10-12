@@ -54,6 +54,12 @@ _DEFAULT_LANE_POINTS: dict[str, int] = {
     # from a "[Platform] Solutions Architect" partner-delivery seat (already
     # parked by the off-lane delivery-SA signals below fit_score never sees).
     "ai solutions architect": 5,
+    # "AI Builder" / "AI Product Builder" is a distinct title shape from the
+    # keywords above - bare "builder" matches nothing in this table, so a
+    # title-verbatim hit scored only comp/stack points and could land under
+    # the queue floor despite being a strong archetype match (mid-level,
+    # title-verbatim AI-builder roles at mainstream enterprises).
+    "ai product builder": 5, "ai builder": 5,
 }
 LANE_POINTS: dict[str, int] = (
     {str(k).lower(): int(v) for k, v in POLICY["lane_points"].items()}
