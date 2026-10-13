@@ -658,7 +658,16 @@ def _blob(job: Job) -> str:
 
 
 def role_key(company_slug: str, title: str) -> tuple[str, str]:
-    """Role-level identity: (company slug, normalized title prefix)."""
+    """Role-level identity: (company slug, normalized title prefix).
+
+    Caveat: a company can list the SAME req under one title on the board and a
+    different title in the JD body's own heading (seen 2026-10-13: a board listing
+    read "AI Agent Operations Specialist, Support" while the JD body's headings all
+    read "AI Optimization Specialist, Support", a title already screened dead under
+    this key). Matching on the board title alone can miss that collision; when a
+    company-level hit turns up nothing on this key, a second check against the JD
+    body's own heading text catches the retitled-listing case.
+    """
     return (company_slug or "", re.sub(r"[^a-z0-9]", "", (title or "").lower())[:40])
 
 
