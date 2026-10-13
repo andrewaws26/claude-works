@@ -654,3 +654,11 @@ def test_language_requirement_is_parked():
     assert body.parked and body.parked[0][1] == "language-required"
     bonus = curation.curate([_job("Forward Deployed Engineer", company="Acme (Spanish is a plus but not required)")])
     assert not bonus.parked or bonus.parked[0][1] != "language-required"
+
+
+def test_devrel_title_needs_ai_signal_to_keep_lane_points():
+    url = "https://jobs.ashbyhq.com/c/12345678-90ab-cdef-1234-567890abcdef"
+    infra = Job(title="Developer Advocate, Data Platform", company="Chainco", url=url, ats="ashby", remote=True)
+    ai = Job(title="Developer Advocate, AI Platform", company="Chainco", url=url, ats="ashby", remote=True)
+    # the AI-signal row keeps the full lane component; the infra row is capped at 1
+    assert curation.fit_score(ai) - curation.fit_score(infra) >= 3

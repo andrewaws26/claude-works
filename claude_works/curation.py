@@ -842,6 +842,14 @@ def fit_score(job: Job) -> int:
     # component so builder lanes always outrank QA in best-first ordering.
     if re.search(r"\bqa\b|quality assurance|test engineer", title):
         score = min(score, 3)
+    # DevRel titles (developer advocate, devrel, developer relations,
+    # evangelist) keep their lane points only when the row carries an AI
+    # signal. Generic infra DevRel is technical marketing (content portfolio,
+    # community presence, conference travel) with no AI-building scope, so
+    # without an AI word the lane component drops under the queue floor.
+    if re.search(r"developer advocate|devrel|developer relations|evangelist", title) and \
+            not re.search(r"\bai\b|\bllm|\bagent|\bml\b|genai|\brag\b|generative|copilot|\bgpt\b", blob):
+        score = min(score, 1)
     if job.remote or "remote" in blob:
         score += 2
     if "python" in blob:
