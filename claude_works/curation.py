@@ -424,8 +424,13 @@ PRESALES_SEGMENT_TITLE = re.compile(
 # sails through. Compass-direction and region words after the title carry the
 # same territory-segment signal as the leading list, just on the other side of
 # the noun phrase.
+# Widened 2026-10-13 to "Solutions Architect" as well: a b-lane fire burned two
+# screen slots on the identical regional shape under the architect title
+# ("Solutions Architect - Central" / "- West", JD: pre-sales, sales cycle,
+# AppSec demos). Same territory signal, same park. Leading qualifiers on an
+# architect title stay with the delivery-architect rule below.
 PRESALES_REGION_SUFFIX = re.compile(
-    r"\bsolutions? engineers?\b[\w ,/&-]{0,24}\b(central|east|west|north|south|"
+    r"\bsolutions? (?:engineers?|architects?)\b[\w ,/&-]{0,24}\b(central|east|west|north|south|"
     r"northeast|northwest|southeast|southwest)\b"
     r"(?![\w ,&-]{0,20}(?:europe|asia|africa|america|pacific|atlantic))"
 )

@@ -326,6 +326,25 @@ def test_segment_qualified_solutions_engineer_titles_are_parked_without_body_tex
     assert curation.curate([builder_se]).active
 
 
+def test_regional_solutions_architect_titles_are_parked_without_body_text():
+    # The same territory shape under the architect title: one org posted the
+    # identical pre-sales req as "Solutions Architect - Central" and "- West".
+    # A compass or region suffix after "solutions architect" is the territory
+    # signal, exactly as it is after "solutions engineer".
+    for title in ("Solutions Architect - Central", "Solutions Architect - West"):
+        job = Job(title=title, company="Acme",
+                  url="https://job-boards.greenhouse.io/acme/jobs/4739121005",
+                  ats="greenhouse", location="Remote US", remote=True)
+        res = curation.curate([job])
+        assert res.parked and res.parked[0][1] == "pre-sales", title
+    # A plain or AI-shaped architect title with no territory marker stays active.
+    builder = Job(title="AI Solutions Architect", company="Acme",
+                  url="https://job-boards.greenhouse.io/acme/jobs/4739121006",
+                  ats="greenhouse", location="Remote US", remote=True,
+                  comp="build agentic systems in Python and TypeScript with LLM APIs")
+    assert curation.curate([builder]).active
+
+
 def test_ats_demo_board_is_parked():
     demo = Job(title="Solutions Architect", company="Lever Demo",
                url="https://jobs.lever.co/leverdemo/12345678-90ab-cdef-1234-567890abcdef",
