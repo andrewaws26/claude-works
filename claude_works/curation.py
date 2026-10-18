@@ -78,6 +78,10 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
     "technician", "strategic client", "strategic account",
+    # Licensed-clinician evaluator seats: a "Clinical Evaluator, AI Products"
+    # title carries an AI keyword, but the role requires an independent
+    # therapy license. A credential knockout, not a software role.
+    "clinical evaluator", "clinician", "therapist", "licensed counselor",
 ))
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
