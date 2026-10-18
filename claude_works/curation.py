@@ -455,6 +455,26 @@ CONTACT_CENTER_SIGNALS: tuple[str, ...] = (
 )
 CONTACT_CENTER_TITLE = re.compile(r"architect|solutions? engineer|sales engineer")
 
+# Mortgage and lending-platform field-engineer postings: a "Forward Deployed
+# Engineer" or solutions / implementation-engineer title whose body is really
+# loan-origination platform integration (Encompass, SimpleNexus, Floify, Blend)
+# behind a hard "years in mortgage or lending workflows" requirement and a
+# consultative account-management motion. That is a domain gap no builder claim
+# covers, and the board-summary row often carries only the bare title, so the
+# word "mortgage" in a field-engineer title parks on its own. Gated on the
+# field-engineer role shape so an AI builder role at a fintech that merely
+# mentions lending is never caught. Learned from runtime triage: this was the
+# only row left in one ATS partition and it fell to exactly this knockout.
+LENDING_PLATFORM_SIGNALS: tuple[str, ...] = (
+    "encompass", "loan origination", "mortgage los", "los/pos", "los and pos",
+    "simplenexus", "floify", "mortgage origination", "lending workflows",
+    "mortgage workflows",
+)
+LENDING_PLATFORM_TITLE = re.compile(
+    r"forward[- ]deployed|solutions? (?:engineer|architect)|implementation engineer|"
+    r"integration engineer|field engineer"
+)
+
 # Enterprise-delivery architect postings: partner and channel architects,
 # professional-services implementation architects, and packaged-platform
 # consulting seats. The title reads like engineering, but the work is rolling out
@@ -621,7 +641,7 @@ PARK_REASONS: tuple[str, ...] = (
     "evergreen-posting", "advanced-degree", "lead-in-body", "model-training",
     "onsite-hybrid", "office-anchored-location", "off-lane", "non-us-region", "non-us-location", "non-us-only",
     "hard-skill-gap", "language-required",
-    "comp-below-floor", "pre-sales", "contact-center", "delivery-architect",
+    "comp-below-floor", "pre-sales", "contact-center", "lending-platform", "delivery-architect",
     "infra-deployment",
     "demo-board", "railed-role-family",
 )
@@ -822,6 +842,10 @@ def park_reason(
         return "pre-sales"
     if CONTACT_CENTER_TITLE.search(title) and any(s in blob for s in CONTACT_CENTER_SIGNALS):
         return "contact-center"
+    if LENDING_PLATFORM_TITLE.search(title) and (
+        "mortgage" in title or any(s in blob for s in LENDING_PLATFORM_SIGNALS)
+    ):
+        return "lending-platform"
     if DELIVERY_ARCHITECT_TITLE.search(title) and any(
         s in title or s in blob for s in DELIVERY_ARCHITECT_SIGNALS
     ):

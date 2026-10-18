@@ -684,3 +684,25 @@ def test_devrel_title_needs_ai_signal_to_keep_lane_points():
     ai = Job(title="Developer Advocate, AI Platform", company="Chainco", url=url, ats="ashby", remote=True)
     # the AI-signal row keeps the full lane component; the infra row is capped at 1
     assert curation.fit_score(ai) - curation.fit_score(infra) >= 3
+
+
+def test_lending_platform_fde_parks_on_title_or_body():
+    # Bare board-summary title: the word "mortgage" on a field-engineer title parks alone.
+    bare = Job(title="Mortgage Forward Deployed Engineer", company="Acme",
+               url="https://job-boards.greenhouse.io/acme/jobs/1111111",
+               ats="greenhouse", location="Remote - US", remote=True, comp="")
+    # Neutral title, loan-origination platform body.
+    body = Job(title="Solutions Engineer", company="Acme",
+               url="https://job-boards.greenhouse.io/acme/jobs/2222222",
+               ats="greenhouse", location="Remote - US", remote=True,
+               comp="Build integrations with Encompass and other loan origination systems")
+    for job in (bare, body):
+        res = curation.curate([job])
+        assert res.parked and res.parked[0][1] == "lending-platform", job.title
+    # An AI builder role at a lender that merely mentions lending stays active.
+    builder = Job(title="AI Engineer", company="Acme",
+                  url="https://job-boards.greenhouse.io/acme/jobs/3333333",
+                  ats="greenhouse", location="Remote - US", remote=True,
+                  comp="build LLM document-extraction agents for lending workflows in Python")
+    assert curation.curate([builder]).active
+
