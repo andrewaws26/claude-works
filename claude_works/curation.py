@@ -173,6 +173,9 @@ MODEL_TRAINING: tuple[str, ...] = (
     "fine-tun", "rlhf", "rlaif", "reward model", "model training", "pretrain",
     "pre-train", "training large language", "train llms", "models from scratch",
     "coding agent evaluation", "ai coding agent evaluation",
+    # a posting that makes classical ML depth (hands-on predictive or classification
+    # model building) a firm criterion is a modeling role, not an LLM-builder role
+    "classical ml", "classical-ml", "predictive modeling", "predictive-modeling",
 )
 ONSITE: tuple[str, ...] = (
     "on-site", "onsite", "in-office", "in office", "in person", "in-person",

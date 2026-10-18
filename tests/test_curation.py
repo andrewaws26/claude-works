@@ -241,6 +241,9 @@ def test_learned_filters_park_model_training_onsite_lead():
     # model-training (research engineering)
     r1 = curation.curate([Job(title="AI Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="RLHF and fine-tuning reward models")])
     assert r1.parked and r1.parked[0][1] == "model-training"
+    # classical-ML depth as a firm criterion is the same family (modeling, not building on models)
+    r1b = curation.curate([Job(title="Senior AI Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", comp="LLM coaching agent; firm classical ML depth criterion, predictive modeling")])
+    assert r1b.parked and r1b.parked[0][1] == "model-training"
     # onsite/hybrid without remote
     r2 = curation.curate([Job(title="AI Engineer", company="Acme", url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef", ats="ashby", location="New York", comp="3 days a week in office", remote=False)])
     assert r2.parked and r2.parked[0][1] == "onsite-hybrid"
