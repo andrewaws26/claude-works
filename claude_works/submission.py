@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # standard credentials clear it with no captcha or email code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup", "ultipro"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup", "ultipro", "fountain"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -613,6 +613,11 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "react-select comboboxes here behave like the ones on other boards: click the visible placeholder text to open the listbox rather than the hidden input, then click the option by visible text.",
         "Some postings gate submit behind short free-text essay questions probing the exact skill the role wants (for this posting, AI-toolchain experience and an agentic-coding SDLC question). Answer these as real narrative content grounded in verified experience, not throwaway filler; a role explicitly hiring for a practice will read the essay answers as the strongest signal in the form.",
     ],
+    "fountain": [
+        "This volume-hiring ATS (apply.<region>.fountain.com/apply/<org>/opening/<slug>-<uuid>) renders the whole posting client-side, so a plain HTTP fetch returns only an empty app shell with no job text; read the description through a real browser session instead.",
+        "The very first step (name, email, phone, two optional marketing-consent checkboxes under a Continue button) is already gated behind Cloudflare Turnstile, printed right on the page before the button is even clicked; resume upload and any job-specific questions sit on a second step that is never reached if step one is walled. Clicking Continue produces the same signature as every other Turnstile wall in this file: a challenge-platform pat request 401s, no backend application record is ever created, and the button stays stuck with no visible error. This is a robot check, never bypassed; fill-and-park after one attempt. Unlike some Turnstile variants the tab stays alive and the typed fields survive untouched, so the park note can simply point at what is already on the page rather than asking for a redo.",
+        "Check the posting footer for a direct 'Having trouble?' contact email before parking; some employers will accept materials by email when their own Fountain form is broken for applicants. Never send that email automatically; it stays a human step.",
+    ],
     "custom": [
         "A small company's bespoke careers page can change apply mechanism entirely between visits: one seen previously as mail-to-only (no submittable form, so it had to be parked) had, weeks later, a real in-page form on the same posting family with no code change on this system's side. Before trusting an old parked note that says 'no web form,' re-fetch the live page; do not assume a prior finding about a custom site is still true.",
         "Some bespoke forms deliberately skip a resume upload and instead ask for a single free-text message field, explicitly favoring a short, specific, evidence-grounded pitch over an attached document. Treat that field as the entire pitch: cite concrete built-and-shipped specifics that map directly to the posting's own listed asks, not a generic cover-letter paragraph.",
@@ -725,6 +730,8 @@ def classify_ats(job: Job) -> str:
         return "kula"
     if "ycombinator.com" in u or "workatastartup.com" in u:
         return "workatastartup"
+    if "fountain.com" in u:
+        return "fountain"
     return job.ats.lower() or "unknown"
 
 
