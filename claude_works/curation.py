@@ -90,7 +90,12 @@ EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "apprentice")
 # "intern"/"internship" need a word-boundary match: a plain substring check
 # false-positives on "Internal" (e.g. an "Internal Tools Engineer" or "Internal
 # Agents" title), which would wrongly park a legitimate IC role.
-EXTRA_LEVEL_WORD = re.compile(r"\bintern(?:ship)?\b")
+# "dir" catches abbreviated titles like "Dir, Solutions Engineering" that a
+# harvester wrote without spelling out "director" (RAILS.overlevel_terms only
+# does a substring check, so "dir," slips past it); the \b bounds mean
+# "direct"/"redirect"/"directory" don't false-positive since "dir" isn't a
+# standalone word there.
+EXTRA_LEVEL_WORD = re.compile(r"\b(?:intern(?:ship)?|dir)\b")
 
 # Advanced-degree knockout: "Scientist" titles (Research/Applied/ML/Data Scientist)
 # and JDs that require a PhD or Master's are a hard credential gap for a candidate
