@@ -227,6 +227,13 @@ def lever_board_jobs(org: str, fetch: Fetcher = _get_json) -> list[Job]:
         if not (j.get("text") and url):
             continue
         cats = j.get("categories") or {}
+        # categories.commitment names the engagement type. "Third Party Contract"
+        # is a corp-to-corp staffing placement, the standing third-party-recruiter
+        # rail; the harvested row carries no body for curation to catch it later,
+        # so drop it here.
+        commitment = str(cats.get("commitment") or "").lower()
+        if "third party" in commitment or "third-party" in commitment:
+            continue
         loc = str(cats.get("location") or "")
         jobs.append(Job(
             title=str(j["text"]).strip(),

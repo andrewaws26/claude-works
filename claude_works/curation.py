@@ -78,6 +78,10 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
     "technician", "strategic client", "strategic account",
+    # Quota-carrying "Specialist Seller, Enterprise (AI Products)" seats: the AI
+    # keyword names the product line being sold, not the work. Leading space
+    # keeps "reseller" partner titles from matching by accident.
+    " seller",
     # Licensed-clinician evaluator seats: a "Clinical Evaluator, AI Products"
     # title carries an AI keyword, but the role requires an independent
     # therapy license. A credential knockout, not a software role.

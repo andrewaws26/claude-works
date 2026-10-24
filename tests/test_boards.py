@@ -55,6 +55,17 @@ def test_greenhouse_and_lever_boards_parse():
     assert lv[0].remote is True and lv[0].ats == "Lever"
 
 
+def test_lever_third_party_contract_postings_are_dropped_at_harvest():
+    board = LEVER_BOARD + [
+        {"text": "AI Builder (Forward Deployed Engineer)",
+         "hostedUrl": "https://jobs.lever.co/acme/bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+         "categories": {"location": "United States", "commitment": "Third Party Contract"},
+         "workplaceType": "remote"},
+    ]
+    lv = boards.lever_board_jobs("acme", fetch=lambda url: board)
+    assert [j.title for j in lv] == ["Solutions Engineer"]
+
+
 def test_boards_sweep_skips_failing_boards_without_dying():
     def fetch(url):
         if "ashbyhq" in url:

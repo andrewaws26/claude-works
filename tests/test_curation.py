@@ -36,6 +36,12 @@ def test_design_engineer_is_parked_off_lane():
     assert res.parked[0][1] == "off-lane"
 
 
+def test_specialist_seller_is_parked_off_lane():
+    res = curation.curate([_job("Specialist Seller, Enterprise Core (AI Products)")])
+    assert res.active == []
+    assert res.parked[0][1] == "off-lane"
+
+
 def test_over_level_title_is_parked():
     for title in ("Staff Software Engineer", "Director of AI", "Founding Engineer"):
         res = curation.curate([_job(title)])
