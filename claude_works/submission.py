@@ -53,7 +53,7 @@ STANDARD_ANSWERS: dict[str, str] = {
 # standard credentials clear it with no captcha or email code.)
 AUTO_SUBMIT_ATS = {"ashby", "greenhouse", "workable", "hirebridge", "brightmove", "successfactors", "pinpointhq"}
 # ATSes / signals that force a fill-and-park (captcha or irreducible human step).
-PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup", "ultipro", "fountain"}
+PARK_ATS = {"lever", "workday", "gem", "icims", "rippling", "smartrecruiters", "jazzhr", "bamboohr", "oracle", "comeet", "dayforce", "gnahiring", "workatastartup", "ultipro", "fountain", "careerplug"}
 
 # Hard-won, per-ATS form-handling tactics, accreted as the system learns a better
 # way (the public mirror of the private ATS_PLAYBOOK.md). This is the "memory" of
@@ -637,6 +637,12 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Because the account is a prerequisite for even starting the application (there is usually no guest/one-off apply path on the platform side), the park note must carry the FULL signup URL with its query parameters intact (they route straight into the target employer's specific job/application after signup completes), not just a generic 'go apply' pointer.",
         "Classify any queued row whose apply URL points at this kind of startup-network directory as account+captcha wall class at discovery time, same bucket as other reCAPTCHA-gated boards; do not expect a clean auto-submit.",
     ],
+    "careerplug": [
+        "A job URL of the form <org>.careerplug.com/jobs/<id> redirects straight to the live application page (/jobs/<id>/apps/new); that redirect alone confirms the posting is open, no separate liveness check needed.",
+        "The form is otherwise clean: name/email/phone, an SMS-opt-in radio, an optional address block, a native file input for resume (styled as an 'Upload File' button, so a plain click can target the invisible input and time out; dispatch the click programmatically on the input element instead), an optional cover letter with an 'attach a file' or 'type/paste text' toggle, and board-custom screening questions rendered as plain Yes/No <select> elements rather than radio groups.",
+        "Clicking 'Submit Application' reliably passes browser-side validation and returns to the SAME URL with no error text anywhere in the accessible tree; the real outcome is a reCAPTCHA Enterprise image-grid challenge (e.g. 'select all squares with traffic lights') rendered as an overlay. A silent same-URL result after submit on this ATS means check for a modal overlay (a screenshot catches it when the accessibility read does not), not that the click failed to register.",
+        "Treat every careerplug.com board as captcha-walled by default (same as the Ashby image-grid class): fill and verify every field first, then park on the challenge. The filled state does not persist across a fresh page load, so the park note must give a complete field-by-field recipe for a human redo, not a 'just click submit' pointer.",
+    ],
 }
 
 # Tactics that apply across every ATS.
@@ -738,6 +744,8 @@ def classify_ats(job: Job) -> str:
         return "workatastartup"
     if "fountain.com" in u:
         return "fountain"
+    if "careerplug.com" in u:
+        return "careerplug"
     return job.ats.lower() or "unknown"
 
 
