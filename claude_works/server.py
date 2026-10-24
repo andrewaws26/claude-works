@@ -1,4 +1,4 @@
-"""FastMCP server wiring the job-search tools together (stdio transport).
+"""MCP server wiring the job-search tools together (stdio transport).
 
 Run as a Claude Code / Claude Desktop MCP server:
 
@@ -26,15 +26,21 @@ from . import boards, curation, discovery, submission, tracker, verification
 from . import resume as resume_mod
 from .models import Application, Job
 
-try:
-    # mcp 2.x renamed FastMCP to MCPServer and turned the old import path into a
-    # module that raises ModuleNotFoundError on import.
-    from mcp.server.mcpserver import MCPServer as _ServerClass
-except ModuleNotFoundError:
-    # mcp 1.x: the decorator-based server still lives at mcp.server.fastmcp.
-    _ServerClass = importlib.import_module("mcp.server.fastmcp").FastMCP
 
-mcp = _ServerClass("claude-works")
+
+def _server_class() -> Any:
+    """Return the decorator-based server class for whichever mcp major is installed.
+
+    mcp 2.x renamed FastMCP to MCPServer and turned the old import path into a module
+    that raises ModuleNotFoundError on import; mcp 1.x still ships mcp.server.fastmcp.
+    """
+    try:
+        return importlib.import_module("mcp.server.mcpserver").MCPServer
+    except ModuleNotFoundError:
+        return importlib.import_module("mcp.server.fastmcp").FastMCP
+
+
+mcp = _server_class()("claude-works")
 
 
 # --------------------------------------------------------------------------- #
