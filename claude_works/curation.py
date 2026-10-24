@@ -73,7 +73,7 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "gtm engineer", "gtm operations", "growth engineer",
     "design engineer", "designer", "ux ", "ui/ux", "consultant", "value engineer",
     "pre-sales", "presales", "sales engineer", "recruiter", "sourcer", " sales",
-    "account executive", "account manager", "marketing", "copywriter",
+    "account executive", "account manager", "copywriter",
     "research scientist", "researcher", "data scientist", "hardware engineer",
     "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
@@ -87,6 +87,13 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     # therapy license. A credential knockout, not a software role.
     "clinical evaluator", "clinician", "therapist", "licensed counselor",
 ))
+
+# Department-name words that mean "this IS the department's function" (Marketing
+# Specialist) but false-positive on a builder/engineer title SCOPED to that
+# department (an "AI Automation Engineer, Finance & Operations" title is an
+# engineering seat serving finance/ops, not a finance seat). Only park on these
+# when the title has no engineer/developer noun of its own.
+OFF_LANE_DEPT_SCOPED: tuple[str, ...] = ("finance", "legal", "marketing", "content ")
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
 EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "apprentice")
@@ -844,6 +851,8 @@ def park_reason(
     if is_metro_scoped_remote(job.location):
         return "metro-scoped-remote"
     if any(t in title for t in OFF_LANE):
+        return "off-lane"
+    if any(t in title for t in OFF_LANE_DEPT_SCOPED) and not re.search(r"engineer|developer", title):
         return "off-lane"
     if PRESALES_TITLE.search(title) and any(s in blob for s in PRESALES_SIGNALS):
         return "pre-sales"

@@ -42,6 +42,28 @@ def test_specialist_seller_is_parked_off_lane():
     assert res.parked[0][1] == "off-lane"
 
 
+def test_marketing_finance_legal_specialist_is_parked_off_lane():
+    res = curation.curate([
+        _job("Marketing Specialist"),
+        _job("Finance Associate"),
+        _job("Legal Counsel"),
+    ])
+    assert res.active == []
+    assert all(reason == "off-lane" for _, reason in res.parked)
+
+
+def test_engineer_title_scoped_to_a_department_is_not_parked_off_lane():
+    # A builder/engineer title scoped to a department ("...Engineer, Finance &
+    # Operations") is an engineering seat, not a finance/marketing/legal seat;
+    # it must not trip the department-name words meant for non-eng functions.
+    res = curation.curate([
+        _job("AI Automation Engineer, Finance & Operations"),
+        _job("Software Engineer, Marketing Platform"),
+    ])
+    assert res.parked == []
+    assert len(res.active) == 2
+
+
 def test_over_level_title_is_parked():
     for title in ("Staff Software Engineer", "Director of AI", "Founding Engineer"):
         res = curation.curate([_job(title)])
