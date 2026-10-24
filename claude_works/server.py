@@ -19,15 +19,22 @@ faking a browser submit.
 
 from __future__ import annotations
 
+import importlib
 from typing import Any
-
-from mcp.server.fastmcp import FastMCP
 
 from . import boards, curation, discovery, submission, tracker, verification
 from . import resume as resume_mod
 from .models import Application, Job
 
-mcp = FastMCP("claude-works")
+try:
+    # mcp 2.x renamed FastMCP to MCPServer and turned the old import path into a
+    # module that raises ModuleNotFoundError on import.
+    from mcp.server.mcpserver import MCPServer as _ServerClass
+except ModuleNotFoundError:
+    # mcp 1.x: the decorator-based server still lives at mcp.server.fastmcp.
+    _ServerClass = importlib.import_module("mcp.server.fastmcp").FastMCP
+
+mcp = _ServerClass("claude-works")
 
 
 # --------------------------------------------------------------------------- #

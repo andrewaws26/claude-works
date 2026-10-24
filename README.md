@@ -6,11 +6,11 @@ An MCP server that turns a perpetual, fit-first job-application pipeline into ty
 
 ## What it is
 
-Claude Works is a [Model Context Protocol](https://modelcontextprotocol.io) server built on FastMCP. It exposes a working, autonomous job-application loop (discovery sweeps, fit scoring, a verified resume builder, a fill-and-park submission planner, and an application ledger) as a small set of typed tools.
+Claude Works is a [Model Context Protocol](https://modelcontextprotocol.io) server built on the official MCP Python SDK (`MCPServer`, formerly `FastMCP`; both the 1.x and 2.x SDKs are supported). It exposes a working, autonomous job-application loop (discovery sweeps, fit scoring, a verified resume builder, a fill-and-park submission planner, and an application ledger) as a small set of typed tools.
 
 The point is not to wrap a chatbot around a job board. The point is to put the policy where it cannot drift: in code. An agent calling these tools cannot quietly inflate a fit score, claim a resume passed gates it never ran, or report a submission that did not happen. The honesty lives in the modules, not in a system prompt that the next conversation might forget.
 
-The core (everything except the FastMCP wiring) imports with the standard library only. That keeps the domain logic fast to test, easy to read, and reusable outside the MCP runtime.
+The core (everything except the MCP server wiring) imports with the standard library only. That keeps the domain logic fast to test, easy to read, and reusable outside the MCP runtime.
 
 ## Try it in two minutes
 
@@ -83,7 +83,7 @@ Module layout:
 | `resume.py` | The resume builder and the static verification gates. |
 | `submission.py` | ATS classification and the deterministic fill-and-park plan builder. |
 | `tracker.py` | Reading and appending the ledger and the discovery queue, de-duped by role. |
-| `server.py` | The FastMCP wiring. The only module that imports `mcp`. |
+| `server.py` | The MCP server wiring. The only module that imports `mcp`. |
 
 Because `__init__.py` imports only `models`, `import claude_works` never requires the MCP runtime, and the unit tests run against the pure core with no network and no third-party dependencies.
 
