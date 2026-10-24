@@ -27,7 +27,6 @@ from . import resume as resume_mod
 from .models import Application, Job
 
 
-
 def _server_class() -> Any:
     """Return the decorator-based server class for whichever mcp major is installed.
 
