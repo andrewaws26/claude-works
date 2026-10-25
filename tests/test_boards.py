@@ -163,6 +163,19 @@ def test_ashby_state_allowlist_reads_primary_plus_secondary_states():
     assert boards.ashby_state_allowlist({**STATE_LIST_POSTING, "workplaceType": "Hybrid"}) == frozenset()
 
 
+def test_ashby_state_allowlist_with_city_primary_reads_secondaries():
+    """A city primary plus 3+ bare-state secondaries is still an allowlist."""
+    posting = {**STATE_LIST_POSTING, "location": "Boston", "secondaryLocations": [
+        {"location": "Texas"}, {"location": "Washington State"}, {"location": "Georgia"}]}
+    assert boards.ashby_state_allowlist(posting) == frozenset({"TX", "WA", "GA"})
+    # Two secondaries are too few to call a residency rule.
+    short = {**posting, "secondaryLocations": posting["secondaryLocations"][:2]}
+    assert boards.ashby_state_allowlist(short) == frozenset()
+    # A city among the secondaries makes it an office list.
+    mixed = {**posting, "secondaryLocations": [*posting["secondaryLocations"], {"location": "Austin"}]}
+    assert boards.ashby_state_allowlist(mixed) == frozenset()
+
+
 def test_ashby_board_drops_state_restricted_remote_posting():
     """Remote plus an enumerated state list without ours is a residency rail."""
     board = {"name": "Acme Agents", "jobs": [STATE_LIST_POSTING, ASHBY_BOARD["jobs"][0]]}

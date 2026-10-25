@@ -132,6 +132,7 @@ US_STATE_CODES: dict[str, str] = {
     "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC",
 }
 ASHBY_ALLOWLIST_MIN = 2
+ASHBY_SECONDARY_ALLOWLIST_MIN = 3
 
 
 def ashby_state_allowlist(posting: Mapping[str, Any]) -> frozenset[str]:
@@ -155,11 +156,28 @@ def ashby_state_allowlist(posting: Mapping[str, Any]) -> frozenset[str]:
             continue
         addr = ((sec.get("address") or {}).get("postalAddress") or {})
         names.append(str(sec.get("location") or addr.get("addressRegion") or ""))
-    cleaned = [n.strip().lower() for n in names if n and n.strip()]
-    if len(cleaned) < ASHBY_ALLOWLIST_MIN:
+    cleaned = [_state_name(n) for n in names if n and n.strip()]
+    codes = _all_state_codes(cleaned, ASHBY_ALLOWLIST_MIN)
+    if codes:
+        return codes
+    # The primary can instead be an anchor-office city ("Boston") with the
+    # allowlist living only in the secondaries ("Texas", "Washington State").
+    # A longer run is required there, so two stray states never qualify.
+    return _all_state_codes(cleaned[1:], ASHBY_SECONDARY_ALLOWLIST_MIN)
+
+
+def _state_name(name: str) -> str:
+    """Lowercase a location and drop a trailing "State" ("Washington State")."""
+    lowered = name.strip().lower()
+    return lowered[:-len(" state")].strip() if lowered.endswith(" state") else lowered
+
+
+def _all_state_codes(names: list[str], minimum: int) -> frozenset[str]:
+    """Codes when every name is exactly a US state and there are enough of them."""
+    if len(names) < minimum:
         return frozenset()
     codes: set[str] = set()
-    for name in cleaned:
+    for name in names:
         code = US_STATE_CODES.get(name)
         if not code:
             return frozenset()
