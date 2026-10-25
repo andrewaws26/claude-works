@@ -269,6 +269,11 @@ LEAD_BODY: tuple[str, ...] = (
     "technical leader, not just", "coach and develop engineers", "performance management",
 )
 
+# A sized-team phrase ("lead a five-person team") carries the same over-level
+# signal as "lead a team of" but neither LEAD_BODY substring matches it, since
+# both expect the word "team" to follow "of" or a gerund rather than a number.
+LEAD_TEAM_SIZE = re.compile(r"lead(?:ing)? an? [a-z0-9-]+[- ]person team")
+
 # A "United States - Remote" location label can still hide a TIME-ZONE knockout in
 # the JD body ("Open to candidates located in the Central, Mountain, and Pacific
 # time zones"). The ONSITE list cannot catch it, because the posting really does
@@ -845,7 +850,7 @@ def park_reason(
         d in blob for d in ADVANCED_DEGREE if not (d == "phd" and ADVANCED_DEGREE_NEGATED.search(blob))
     ):
         return "advanced-degree"
-    if any(p in blob for p in LEAD_BODY):
+    if any(p in blob for p in LEAD_BODY) or LEAD_TEAM_SIZE.search(blob):
         return "lead-in-body"
     if any(m in blob for m in MODEL_TRAINING):
         return "model-training"
