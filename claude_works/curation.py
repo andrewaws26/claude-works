@@ -198,6 +198,11 @@ MODEL_TRAINING: tuple[str, ...] = (
     "fine-tun", "rlhf", "rlaif", "reward model", "model training", "pretrain",
     "pre-train", "training large language", "train llms", "models from scratch",
     "coding agent evaluation", "ai coding agent evaluation", "ai code evaluation",
+    # a $/hr CONTRACT "paid study" gig reviewing AI eval harnesses, titled like a
+    # real SWE role (e.g. "Software Engineer, AI Agent Evaluation") - the
+    # gig-platform tell, not the eval-engineering work itself. Deliberately not
+    # "agent evaluation" alone: real agent-eval product roles use that language too.
+    "paid study", "participant recruitment",
     # a posting that makes classical ML depth (hands-on predictive or classification
     # model building) a firm criterion is a modeling role, not an LLM-builder role
     "classical ml", "classical-ml", "predictive modeling", "predictive-modeling",
