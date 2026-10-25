@@ -158,6 +158,15 @@ UNDISCLOSED_EMPLOYER_NEGATED = re.compile(
     r"corp[\s-]?to[\s-]?corp\W+(?:\w+\W+){0,2}not\b|"
     r"\bnot\b\W+(?:\w+\W+){0,2}end[\s-]client")
 
+# A recruiting agency's "talent network" signup is a different shape from the
+# undisclosed-employer rail above: there is no real, currently-open req being
+# fronted by an intermediary, just a CRM pool a recruiter may contact if a
+# matching search ever opens. Tell: the posting itself disclaims any guarantee
+# of an interview, submission, or placement.
+TALENT_NETWORK = re.compile(
+    r"talent network\b.{0,80}?(?:does not guarantee|no guarantee|retained within)|"
+    r"(?:does not guarantee|no guarantee)\b.{0,40}?(?:interview|submission|placement)")
+
 # A role whose title or body makes fluency in a second language a requirement is an
 # honest knockout for a candidate with no such claim, not a soft risk. The tell is
 # often only a title slash pair ("Engineer, Spanish/English") or one body line
@@ -188,7 +197,7 @@ LANGUAGE_NEGATED = re.compile(
 MODEL_TRAINING: tuple[str, ...] = (
     "fine-tun", "rlhf", "rlaif", "reward model", "model training", "pretrain",
     "pre-train", "training large language", "train llms", "models from scratch",
-    "coding agent evaluation", "ai coding agent evaluation",
+    "coding agent evaluation", "ai coding agent evaluation", "ai code evaluation",
     # a posting that makes classical ML depth (hands-on predictive or classification
     # model building) a firm criterion is a modeling role, not an LLM-builder role
     "classical ml", "classical-ml", "predictive modeling", "predictive-modeling",
@@ -820,6 +829,8 @@ def park_reason(
         return "excluded-domain"
     if UNDISCLOSED_EMPLOYER.search(blob) and not UNDISCLOSED_EMPLOYER_NEGATED.search(blob):
         return "undisclosed-employer"
+    if TALENT_NETWORK.search(blob):
+        return "talent-network-signup"
     if (
         any(t in title for t in RAILS.overlevel_terms)
         or any(t in title for t in EXTRA_LEVEL)
