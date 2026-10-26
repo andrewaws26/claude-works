@@ -158,6 +158,7 @@ class Rails:
         "rippling", "samsara", "mercor", "onedigital", "elevenlabs",
         "scale ai", "axon", "humana", "havocai", "brainco",
         "second front systems", "arcfield", "istari digital", "onebrief",
+        "motorola solutions",
     )
 
     def env_var_for(self, field_name: str) -> str:
