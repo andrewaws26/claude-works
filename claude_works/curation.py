@@ -165,7 +165,11 @@ UNDISCLOSED_EMPLOYER_NEGATED = re.compile(
 # of an interview, submission, or placement.
 TALENT_NETWORK = re.compile(
     r"talent network\b.{0,80}?(?:does not guarantee|no guarantee|retained within)|"
-    r"(?:does not guarantee|no guarantee)\b.{0,40}?(?:interview|submission|placement)")
+    r"(?:does not guarantee|no guarantee)\b.{0,40}?(?:interview|submission|placement)|"
+    # A "Talent Pool" title segment is the same no-req CRM signup under another
+    # name ("AI Engineer - Acme Talent Pool"). Anchored to a title separator so
+    # EEO prose like "a diverse talent pool" never trips it.
+    r"(?:^|[-|:(\]]\s*)(?:[\w.]+\s+)?talent pool\b")
 
 # A role whose title or body makes fluency in a second language a requirement is an
 # honest knockout for a candidate with no such claim, not a soft risk. The tell is

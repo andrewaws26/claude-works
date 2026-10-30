@@ -680,6 +680,15 @@ def test_undisclosed_employer_is_parked():
     assert unnamed.parked and unnamed.parked[0][1] == "undisclosed-employer"
 
 
+def test_talent_pool_title_is_parked():
+    # A "Talent Pool" title segment is a CRM signup, not an open req; EEO prose
+    # mentioning a diverse talent pool must stay active.
+    pool = curation.curate([_job("AI Engineer / LLM Engineer - Acme Talent Pool")])
+    assert pool.parked and pool.parked[0][1] == "talent-network-signup"
+    prose = curation.curate([_job("AI Engineer", company="Acme (we hire from a diverse talent pool)")])
+    assert prose.active and prose.active[0][0].title == "AI Engineer"
+
+
 def test_on_behalf_of_customers_in_jd_prose_does_not_park():
     # Ordinary forward-deployed and consultancy JDs say the engineer builds "on
     # behalf of our customers" while naming a real employer. Only posting-level
