@@ -629,8 +629,12 @@ NONUS_ORGS: frozenset[str] = frozenset()
 # fires one screen slot too late. Keyed on the RAW url org segment for the same
 # reason as NONUS_ORGS. Populate at runtime from verified boards: the confirming
 # signal is two or more postings on the same board whose bodies each defer
-# "all applications and next steps" to an unnamed partner.
-AGGREGATOR_ORGS: frozenset[str] = frozenset()
+# "all applications and next steps" to an unnamed partner. jobgether confirmed
+# 2026-09-04 (19 queued rows, every JD opened with that exact deferral) and
+# reconfirmed 2026-10-31 (still posting dozens of same-shaped rows a board_harvest
+# cycle later): once a board clears that bar it stays listed, it does not get
+# reconfirmed on every sighting.
+AGGREGATOR_ORGS: frozenset[str] = frozenset({"jobgether"})
 
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
