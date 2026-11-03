@@ -637,7 +637,12 @@ NONUS_ORGS: frozenset[str] = frozenset()
 # reconfirmed 2026-10-31 (still posting dozens of same-shaped rows a board_harvest
 # cycle later): once a board clears that bar it stays listed, it does not get
 # reconfirmed on every sighting.
-AGGREGATOR_ORGS: frozenset[str] = frozenset({"jobgether"})
+# lavendo confirmed 2026-11-03: a staffing-agency Ashby board whose own posting body
+# reads "Lavendo partners with startups ... to help them hire top-tier ... talent.
+# This role is with one of our clients; we'll share full details about the company
+# ... as we get to know you." Same shape as jobgether: the hiring org is never named
+# in the posting, only revealed later in the pipeline.
+AGGREGATOR_ORGS: frozenset[str] = frozenset({"jobgether", "lavendo"})
 
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
