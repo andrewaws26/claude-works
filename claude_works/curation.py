@@ -475,9 +475,12 @@ PRESALES_SEGMENT_TITLE = re.compile(
 # ("Solutions Architect - Central" / "- West", JD: pre-sales, sales cycle,
 # AppSec demos). Same territory signal, same park. Leading qualifiers on an
 # architect title stay with the delivery-architect rule below.
+# Widened 2026-11-02: "Solutions Engineer - New Verticals" is the same trailing-
+# qualifier shape but a GTM-expansion tag instead of a region (JD confirmed
+# 0-to-1 sales testing, talk tracks/playbooks for reps, zero hands-on building).
 PRESALES_REGION_SUFFIX = re.compile(
     r"\bsolutions? (?:engineers?|architects?)\b[\w ,/&-]{0,24}\b(central|east|west|north|south|"
-    r"northeast|northwest|southeast|southwest)\b"
+    r"northeast|northwest|southeast|southwest|new verticals|new markets)\b"
     r"(?![\w ,&-]{0,20}(?:europe|asia|africa|america|pacific|atlantic))"
 )
 
