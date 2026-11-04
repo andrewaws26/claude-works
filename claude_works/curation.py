@@ -750,8 +750,13 @@ def role_key(company_slug: str, title: str) -> tuple[str, str]:
     this key). Matching on the board title alone can miss that collision; when a
     company-level hit turns up nothing on this key, a second check against the JD
     body's own heading text catches the retitled-listing case.
+
+    "&" is spelled out as "and" before the strip: a listing re-scraped as
+    "Platform and AI Enablement" must collide with an applied "Platform & AI
+    Enablement", or an already-submitted role re-enters the queue.
     """
-    return (company_slug or "", re.sub(r"[^a-z0-9]", "", (title or "").lower())[:40])
+    t = re.sub(r"\s*&\s*", " and ", (title or "").lower())
+    return (company_slug or "", re.sub(r"[^a-z0-9]", "", t)[:40])
 
 
 # A company that posts one job under many segment suffixes generates a new role

@@ -743,3 +743,10 @@ def test_lending_platform_fde_parks_on_title_or_body():
                   comp="build LLM document-extraction agents for lending workflows in Python")
     assert curation.curate([builder]).active
 
+
+
+def test_role_key_treats_ampersand_and_spelled_and_as_same_role():
+    applied = curation.role_key("acme", "Software Engineer III, Developer Platform & AI Enablement")
+    requeued = curation.role_key("acme", "Software Engineer III, Developer Platform and AI Enablement")
+    assert applied == requeued
+    assert curation.role_key("acme", "R&D Engineer") == curation.role_key("acme", "R and D Engineer")
