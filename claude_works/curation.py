@@ -106,7 +106,7 @@ EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "apprentice")
 # does a substring check, so "dir," slips past it); the \b bounds mean
 # "direct"/"redirect"/"directory" don't false-positive since "dir" isn't a
 # standalone word there.
-EXTRA_LEVEL_WORD = re.compile(r"\b(?:intern(?:ship)?|dir)\b")
+EXTRA_LEVEL_WORD = re.compile(r"\b(?:intern(?:ship)?|dir|co-op|coop)\b")
 
 # Advanced-degree knockout: "Scientist" titles (Research/Applied/ML/Data Scientist)
 # and JDs that require a PhD or Master's are a hard credential gap for a candidate
