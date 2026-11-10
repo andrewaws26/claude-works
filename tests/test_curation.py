@@ -357,6 +357,31 @@ def test_segment_qualified_solutions_engineer_titles_are_parked_without_body_tex
     assert curation.curate([builder_se]).active
 
 
+def test_bare_solutions_engineer_title_is_parked_without_body_text():
+    # No segment qualifier before or after the title (so the segment rule
+    # misses it) and no body text to check for deal-cycle language (so the
+    # body-gated rule misses it too). A genuine builder role is essentially
+    # never titled with nothing but the bare noun phrase.
+    for title in ("Solutions Engineer", "solutions engineer"):
+        job = Job(title=title, company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True)
+        res = curation.curate([job])
+        assert res.parked and res.parked[0][1] == "pre-sales", title
+    # "Sales Engineer" alone already parks earlier as off-lane (a separate,
+    # pre-existing rule); either reason is correct, since both keep it parked.
+    sales = Job(title="Sales Engineer", company="Acme",
+                url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                ats="ashby", location="Remote, United States", remote=True)
+    assert curation.curate([sales]).parked
+    # Any qualifying word keeps it out of this bare-title rule.
+    builder = Job(title="AI Solutions Engineer", company="Acme",
+                  url="https://jobs.ashbyhq.com/a/12345678-90ab-cdef-1234-567890abcdef",
+                  ats="ashby", location="Remote, United States", remote=True,
+                  comp="build agentic systems in Python and TypeScript with LLM APIs")
+    assert curation.curate([builder]).active
+
+
 def test_regional_solutions_architect_titles_are_parked_without_body_text():
     # The same territory shape under the architect title: one org posted the
     # identical pre-sales req as "Solutions Architect - Central" and "- West".

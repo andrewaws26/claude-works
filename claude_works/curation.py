@@ -60,6 +60,11 @@ _DEFAULT_LANE_POINTS: dict[str, int] = {
     # the queue floor despite being a strong archetype match (mid-level,
     # title-verbatim AI-builder roles at mainstream enterprises).
     "ai product builder": 5, "ai builder": 5,
+    # "Product Engineer" is the title AI-native startups give their AI-building
+    # full-stack SWE (same archetype as "AI Builder"), but the bare title also
+    # matches generic hardware/mechanical roles, so it is gated below on an AI
+    # signal in the body, same as the DevRel lane.
+    "product engineer": 4,
 }
 LANE_POINTS: dict[str, int] = (
     {str(k).lower(): int(v) for k, v in POLICY["lane_points"].items()}
@@ -497,6 +502,17 @@ CONTACT_CENTER_SIGNALS: tuple[str, ...] = (
 )
 CONTACT_CENTER_TITLE = re.compile(r"architect|solutions? engineer|sales engineer")
 
+# A bare, unqualified "Solutions Engineer" or "Sales Engineer" title, with no
+# segment qualifier before or after it (so PRESALES_SEGMENT_TITLE misses it)
+# and no body text available to check for deal-cycle language (so
+# PRESALES_TITLE misses it too, when the source only ever carries a bare
+# title). A genuine hands-on builder role is essentially never titled with
+# nothing but the bare noun phrase; real ones carry a qualifier like "AI",
+# "Forward Deployed", "Implementation", or "Technical". Matched as an exact
+# string (after trimming) so a qualified title some other rule already lets
+# through is never double-parked here.
+BARE_SOLUTIONS_SALES_TITLE = re.compile(r"^(solutions?|sales) engineers?$")
+
 # Mortgage and lending-platform field-engineer postings: a "Forward Deployed
 # Engineer" or solutions / implementation-engineer title whose body is really
 # loan-origination platform integration (Encompass, SimpleNexus, Floify, Blend)
@@ -914,6 +930,13 @@ def park_reason(
             and not INFRA_DEPLOY_AI_QUALIFIED.search(title)
             and sum(1 for sig in INFRA_DEPLOY_SIGNALS if sig in blob) >= INFRA_DEPLOY_SIGNAL_MIN):
         return "infra-deployment"
+    # Fallback, after every body-qualified rule above has had first chance at a
+    # bare title: a bare, unqualified "Solutions/Sales Engineer" title with no
+    # other signal present is still presumed pre-sales rather than a builder
+    # role, since a genuine builder role is essentially never titled with
+    # nothing but the bare noun phrase.
+    if BARE_SOLUTIONS_SALES_TITLE.match(title.strip()):
+        return "pre-sales"
     if REGION_TITLE.search(title):
         return "non-us-region"
     if job.location and not any(s in job.location.lower() for s in US_SIGNALS):
@@ -953,6 +976,9 @@ def fit_score(job: Job) -> int:
     # community presence, conference travel) with no AI-building scope, so
     # without an AI word the lane component drops under the queue floor.
     if re.search(r"developer advocate|devrel|developer relations|evangelist", title) and \
+            not re.search(r"\bai\b|\bllm|\bagent|\bml\b|genai|\brag\b|generative|copilot|\bgpt\b", blob):
+        score = min(score, 1)
+    if "product engineer" in title and \
             not re.search(r"\bai\b|\bllm|\bagent|\bml\b|genai|\brag\b|generative|copilot|\bgpt\b", blob):
         score = min(score, 1)
     if job.remote or "remote" in blob:
