@@ -908,7 +908,13 @@ def park_reason(
         return "state-restricted-remote"
     if is_metro_scoped_remote(job.location):
         return "metro-scoped-remote"
-    if any(t in title for t in OFF_LANE):
+    # "Applied AI Researcher"/"Applied AI Research Engineer" is companies' hands-on
+    # agent-builder title, not an academic research seat; the bare "researcher"
+    # match in OFF_LANE fired before the "applied ai" lane keyword was ever
+    # evaluated, parking an on-lane role (Midstream Health, 2026-11-11). Only
+    # exempt when "applied ai" leads the title; a bare "Researcher" elsewhere
+    # still parks as before.
+    if "applied ai research" not in title and any(t in title for t in OFF_LANE):
         return "off-lane"
     if any(t in title for t in OFF_LANE_DEPT_SCOPED) and not re.search(r"engineer|developer", title):
         return "off-lane"
