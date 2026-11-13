@@ -658,7 +658,11 @@ NONUS_ORGS: frozenset[str] = frozenset()
 # This role is with one of our clients; we'll share full details about the company
 # ... as we get to know you." Same shape as jobgether: the hiring org is never named
 # in the posting, only revealed later in the pipeline.
-AGGREGATOR_ORGS: frozenset[str] = frozenset({"jobgether", "lavendo"})
+AGGREGATOR_ORGS: frozenset[str] = frozenset({"jobgether", "lavendo", "clera"})
+# clera confirmed 2026-11-12: a 298-posting recruiting marketplace on its own Ashby
+# board, not a single employer's board - each req is a different hidden employer.
+# A volume-based many-postings-across-many-cities heuristic misses it when a row
+# arrives one at a time from a search index rather than a full-board crawl.
 
 # Non-US region tokens in the title. Regional roles ("Solutions Engineer, Benelux",
 # "SE, Nordics", "SE, EMEA") often carry a bare "Hybrid" or empty location, so the
