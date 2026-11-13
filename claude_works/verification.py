@@ -31,6 +31,7 @@ from email.message import Message
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+IMAP_TIMEOUT_S = 25
 IMAP_HOST_ENV = "JOBSEARCH_IMAP_HOST"          # default imap.gmail.com
 ADDRESS_ENVS = ("JOBSEARCH_GMAIL_ADDR", "JOBSEARCH_APPLY_EMAIL")
 PASSWORD_ENV = "JOBSEARCH_GMAIL_APP_PASSWORD"
@@ -133,20 +134,27 @@ def fetch_verification_code(minutes: int = 15) -> dict[str, Any]:
 
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
     try:
-        box = imaplib.IMAP4_SSL(os.environ.get(IMAP_HOST_ENV, "imap.gmail.com"))
+        # Bounded socket timeout so a stalled server cannot block the caller for minutes.
+        box = imaplib.IMAP4_SSL(os.environ.get(IMAP_HOST_ENV, "imap.gmail.com"), timeout=IMAP_TIMEOUT_S)
         box.login(addr, pw)
         box.select("INBOX", readonly=True)
         # IMAP SINCE is date-granular; fetch the day's mail, filter by time + sender.
         data = box.search(None, f'(SINCE "{cutoff.strftime("%d-%b-%Y")}")')[1]
         candidates: list[tuple[datetime, str]] = []
         for num in reversed(data[0].split()[-40:]):  # newest first, cap the work
+            # Headers first; download a full body only for ATS-sender mail. Pulling
+            # every full body (newsletters with inline images) can take minutes,
+            # long enough for the waiting application session to expire.
+            typ, hdr_data = box.fetch(num, "(BODY.PEEK[HEADER.FIELDS (FROM)])")
+            if typ != "OK" or not hdr_data or not isinstance(hdr_data[0], tuple):
+                continue
+            hdr = email.message_from_bytes(hdr_data[0][1])
+            if not any(h in str(hdr.get("From") or "").lower() for h in ATS_SENDER_HINTS):
+                continue
             typ, msg_data = box.fetch(num, "(BODY.PEEK[])")
             if typ != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                 continue
             msg = email.message_from_bytes(msg_data[0][1])
-            frm = (msg.get("From") or "").lower()
-            if not any(h in frm for h in ATS_SENDER_HINTS):
-                continue
             try:
                 dt = parsedate_to_datetime(msg.get("Date") or "")
                 if dt and dt.tzinfo is None:
@@ -159,7 +167,7 @@ def fetch_verification_code(minutes: int = 15) -> dict[str, Any]:
             if code:
                 candidates.append((dt or cutoff, code))
         box.logout()
-    except imaplib.IMAP4.error as e:
+    except (imaplib.IMAP4.error, OSError) as e:  # OSError: socket timeout / connection reset
         return {"status": "NO_CODE_FOUND", "detail": f"IMAP error: {e}"}
     if candidates:
         candidates.sort(key=lambda c: c[0], reverse=True)
