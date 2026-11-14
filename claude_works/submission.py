@@ -515,6 +515,7 @@ ATS_GOTCHAS: dict[str, list[str]] = {
         "Resume autofill parses BADLY (it has put a city into the name fields): always re-verify the My Information page after autofill.",
         "Dropdowns are button[aria-haspopup=listbox] then [role=option]; 'How did you hear' is a two-level menu; it is an 8-step wizard and the Review step is the natural verification checkpoint.",
         "Liveness check without a browser: GET https://{tenant}.{dc}.myworkdayjobs.com/wday/cxs/{tenant}/{site}{externalPath} (parse tenant/dc/site/externalPath straight out of the posting URL) returns jobPostingInfo.title for a live req and a 403/404 for a dead or bot-blocked one. A raw HTML fetch is not a substitute: the page is a JS shell whose title stays empty either way, so only record closed on a repeated 403 from this API plus an empty title and no job text in the plain HTML together, not on either signal alone.",
+        "That same liveness check can also come back as an HTTP redirect to a generic Workday maintenance page instead of a clean title or a 403/404. Treat that the same as the 403/404 case: inconclusive about the specific posting, not a closed signal, recheck later.",
     ],
     "gem": [
         "hCaptcha shape-puzzle wall: fill everything, then PARK for the human; never attempt the puzzle.",
