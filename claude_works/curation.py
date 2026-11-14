@@ -705,6 +705,10 @@ US_SIGNALS_TIGHT: tuple[str, ...] = tuple(s for s in US_SIGNALS if s != "remote"
 CHANNEL_BONUS: dict[str, int] = {
     "ashby": 2, "workable": 2, "greenhouse": 2,
     "lever": -2, "gem": -2, "workday": -3, "icims": -3,
+    # Other account-walled HRIS/ATS brands behave the same as workday/icims
+    # (always a human handoff), so they carry the same penalty.
+    "oracle": -3, "adp": -3, "ultipro": -3, "taleo": -3,
+    "successfactors": -3, "paylocity": -3, "avature": -3,
 }
 
 PARK_REASONS: tuple[str, ...] = (
