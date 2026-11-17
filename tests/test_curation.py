@@ -64,6 +64,22 @@ def test_engineer_title_scoped_to_a_department_is_not_parked_off_lane():
     assert len(res.active) == 2
 
 
+def test_embedded_ai_builder_is_not_parked_off_lane():
+    # "embedded " used to be a bare OFF_LANE substring meant to catch
+    # embedded-systems/firmware titles, but it also matched "Embedded AI
+    # Builder", where "embedded" names the deployment model (sits inside a
+    # business team) rather than hardware work.
+    res = curation.curate([_job("Embedded AI Builder")])
+    assert res.parked == []
+    assert len(res.active) == 1
+
+
+def test_embedded_systems_engineer_is_still_parked_off_lane():
+    res = curation.curate([_job("Embedded Systems Engineer")])
+    assert res.active == []
+    assert res.parked[0][1] == "off-lane"
+
+
 def test_over_level_title_is_parked():
     for title in ("Staff Software Engineer", "Director of AI", "Founding Engineer"):
         res = curation.curate([_job(title)])

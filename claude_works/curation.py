@@ -80,7 +80,7 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
     "pre-sales", "presales", "sales engineer", "recruiter", "sourcer", " sales",
     "account executive", "account manager", "copywriter",
     "research scientist", "researcher", "data scientist", "hardware engineer",
-    "mechanical", "electrical engineer", "firmware", "embedded ", "product manager",
+    "mechanical", "electrical engineer", "firmware", "product manager",
     "program manager", "project manager", "strategist", "controller", "accountant",
     "technician", "strategic client", "strategic account",
     # Quota-carrying "Specialist Seller, Enterprise (AI Products)" seats: the AI
@@ -99,6 +99,15 @@ OFF_LANE: tuple[str, ...] = policy_tuple("off_lane_titles", (
 # engineering seat serving finance/ops, not a finance seat). Only park on these
 # when the title has no engineer/developer noun of its own.
 OFF_LANE_DEPT_SCOPED: tuple[str, ...] = ("finance", "legal", "marketing", "content ")
+
+# "embedded " used to sit in OFF_LANE as a bare substring meant to catch
+# embedded-systems/firmware engineering titles, but it also matched "Embedded AI
+# Builder", where "embedded" describes the deployment model (sits inside a
+# business team) rather than hardware work. Scope the park to the actual
+# hardware/firmware context instead of the bare word.
+EMBEDDED_HARDWARE_TITLE = re.compile(
+    r"embedded (systems?|software|firmware|linux|c\+\+|hardware)"
+)
 
 # Extra over-level / wrong-level signals beyond RAILS.overlevel_terms.
 EXTRA_LEVEL: tuple[str, ...] = ("founding", "founder", "apprentice")
@@ -922,7 +931,9 @@ def park_reason(
     # evaluated, parking an on-lane role (Midstream Health, 2026-11-11). Only
     # exempt when "applied ai" leads the title; a bare "Researcher" elsewhere
     # still parks as before.
-    if "applied ai research" not in title and any(t in title for t in OFF_LANE):
+    if "applied ai research" not in title and (
+        any(t in title for t in OFF_LANE) or EMBEDDED_HARDWARE_TITLE.search(title)
+    ):
         return "off-lane"
     if any(t in title for t in OFF_LANE_DEPT_SCOPED) and not re.search(r"engineer|developer", title):
         return "off-lane"
